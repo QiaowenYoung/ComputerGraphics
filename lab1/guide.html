@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Features</title>
+    <style>
+        #text1{
+            padding-left: 80px;
+            padding-right: 600px;
+            padding-top: 100px;
+            color:steelblue;
+            font-family: 'Times New Roman', Times, serif;
+        }
+        img{
+            position: absolute;
+            right: 80px;
+            top: 180px;
+            box-shadow:2px 2px 5px steelblue;
+            border-radius: 0% 10% 0% 10% / 0% 20% 0% 20%;
+        }
+        html, body{
+            width: 100%;
+            height: 100%;
+        }
+        body{
+            background-image: linear-gradient(to top, lightblue, white);
+        }
+        a:link{text-decoration: none; color:steelblue}
+        a:active{text-decoration: blink}
+        a:hover{text-decoration: underline; color:lightcoral}
+        a:visited{text-decoration: none; color:darkturquoise}
+        </style>
+</head>
+<body>
+    <div id=text1>
+        <h1>User-guide and features</h1>
+        <p>The canvas is 600x600 in dimension.</p>
+        <p>Left click to draw a filled red circle centered at the mouse position and with radius of 10. 
+            Right Click to draw a filled blue square centered at the mouse position and with a side of length 10.
+            Click both to draw both circle and square.
+            If there is a sequence of left and right clicks at the same position, only the latest click will be visible.
+        </p>
+        <p>Open console to view the list of dots' x and y coordinate by entering "dotArrayx" and "dotArrayy".</p>
+        <p>Open console to view the list of left/right/both clicks by entering "isLeft". 1 represents a left click, 0 represents a right click, 2 represents both.</p>
+        <p>Open console to view "left click", "right click" or "left and right click" recorded when you do a left/right/both click.</p>
+        <a href="features.html">Homepage<br><br></a>
+        <a href="driver.html">My canvas</a>
+    </div>
+    <img src="screenshot2.png" width="500" height="300">
+</body>
+</html>
