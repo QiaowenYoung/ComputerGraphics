@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Dots</title>
+    <style>
+        canvas{
+            border: 1px solid black;
+            background-color: white;
+        }
+    </style>
+</head>
+
+<body onload="main()">
+    <canvas id="c" width="400" height="300"></canvas>
+    <script id="2d-vertex-shader" type="notjs">
+
+        // an attribute will receive data from a buffer
+        attribute vec4 a_position;
+        attribute float a_pointsize;
+        attribute vec4 a_color;
+        varying vec4 v_color;
+
+        // all shaders have a main function
+        void main() {
+            gl_Position = a_position;
+            gl_PointSize = a_pointsize;
+            v_color = a_color;
+        }
+
+    </script>
+    <script id="2d-fragment-shader" type="notjs">
+
+        // fragment shaders don't have a default precision so we need
+        // to pick one. mediump is a good default
+        precision mediump float;
+        varying vec4 v_color;
+        
+        void main() {
+            float d = distance(gl_PointCoord, vec2(0.5,0.5));
+            if(d < 0.5){
+               gl_FragColor = v_color;
+           }else{ discard;}
+        }
+
+    </script>
+    <script src="Dots.js"></script>
+
+</body>
+
+</html>
