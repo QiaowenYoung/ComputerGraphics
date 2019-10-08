@@ -19,33 +19,6 @@ var FSHADER_SOURCE =
     '  gl_FragColor = v_Color;\n' +
     '}\n';
 
-function createShader(gl, type, source) {
-    var shader = gl.createShader(type);
-    gl.shaderSource(shader, source);
-    gl.compileShader(shader);
-    var success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
-    if (success) {
-        return shader;
-    }
-
-    console.log(gl.getShaderInfoLog(shader));
-    gl.deleteShader(shader);
-}
-
-function createProgram(gl, vertexShader, fragmentShader) {
-    var program = gl.createProgram();
-    gl.attachShader(program, vertexShader);
-    gl.attachShader(program, fragmentShader);
-    gl.linkProgram(program);
-    var success = gl.getProgramParameter(program, gl.LINK_STATUS);
-    if (success) {
-        return program;
-    }
-
-    console.log(gl.getProgramInfoLog(program));
-    gl.deleteProgram(program);
-}
-
 var colors = [];
 var positions = [];
 function main() {
@@ -98,6 +71,7 @@ function click(ev, gl, canvas) {
     positions.push(x);
     positions.push(y);
     positions.push(50);
+    
 
     if (ev.button === 0){
         colors.push(1.0);
@@ -111,6 +85,7 @@ function click(ev, gl, canvas) {
         colors.push(1.0);
         colors.push(1.0);
     }
+    
 
     // Create a buffer object
     var positionBuffer = gl.createBuffer();
@@ -159,13 +134,80 @@ function click(ev, gl, canvas) {
 
     // Set the matrix to be used for to set the camera view
     var viewMatrix = new Matrix4();
-    viewMatrix.setLookAt(1, 0, 0, 0, 0, 0, 0, 0, 1);
+    viewMatrix.setLookAt(0, 0, 1, 0, 0, 0, 0, 0, 1);
 
     // Set the view matrix
     gl.uniformMatrix4fv(u_ViewMatrix, false, viewMatrix.elements);
 
-    var len = positions.length / 3;
+    var len = positions.length / 6;
 
     // Draw the lines
-    gl.drawArrays(gl.LINES, 0, len/2);
+    gl.drawArrays(gl.LINES, 0, len);
+}
+
+function tree1(x, y){
+    var m;
+    m.push(x); m.push(y); m.push(0);
+    m.push(x); m.push(y); m.push(50);
+    m.push(x); m.push(y); m.push(50);
+    var r1 = tree(x, y, 0, x, y, 1, x, y, 0, x, y, 50);
+    for (var i = 0; i < 3; i++){
+        var vec = r1[i];
+        for (var j = 0; j < 3; j++){
+            m.push(vec[j]);
+        }
+        m.push(x); m.push(y); m.push(50);
+    }
+    
+}
+
+function tree(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4){
+    var beta = 45*Math.PI/180;
+    var alpha1 = 0;
+    var alpha2 = 120*Math.PI/180;
+    var alpha3 = 240*Math.PI/180;
+    var m;
+    m.push(generate(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4, alpha1, beta));
+    m.push(generate(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4, alpha2, beta));
+    m.push(generate(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4, alpha3, beta));
+    return m;
+}
+
+function generate(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4, alpha, beta){
+    var x, y, z, u, t, v, a, b, c, m, n, p;
+    var nx, ny, nz;
+    x = x2-x1; y = y2-y1; z = z2-z1;
+    a = x4-x3; b = y4-y3; c = z4-z3;
+    var len = sqrt(x^2+y^2+z^2);
+    var len1 = sqrt(a^2+b^2+c^2);
+    x = x/len; y = y/len; z = z/len;
+    nz.push(x); nz.push(y); nz.push(z);
+    a = a/len1*sqrt(2);
+    b = b/len1*sqrt(2);
+    c = c/len1*sqrt(2);
+    m = a-x; n = b-y; p = c-z;
+    m = -m; n = -n; p = -p;
+    nx.push(m); nx.push(n); nx.push(p);
+    //ny = nz x nx
+    ny.push(nz[1]*nx[2]-nz[2]*nx[1]);
+    ny.push(-(nz[0]*nx[2]-nz[2]*nx[0]));
+    ny.push(nz[0]*nx[1]-nz[1]*nx[0]);
+
+    u = 0; t = 0; v = 1;
+    u = u*sin(beta)+v*cos(beta);
+    t = 0;
+    v = u*cos(beta)-v*sin(beta);
+
+    u = u*cos(alpha)-t*sin(alpha);
+    t = u*sin(alpha)+t*cos(alpha);
+    v = v;
+
+    var vec = [u, t, v];
+    var vec0 = [x2, y2, z2];
+    vec = vec[0]*nx+vec[1]*ny+vec[2]*nz;
+    vec = vec/(sqrt((vec[0])^2+(vec[1])^2+(vec[2])^2));
+    vec = vec*len/2;
+    vec = vec + vec0;
+
+    return vec;
 }
