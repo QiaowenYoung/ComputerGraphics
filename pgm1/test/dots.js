@@ -25,6 +25,11 @@ function main() {
     // Retrieve <canvas> element
     var canvas = document.getElementById('webgl');
 
+    // Prevent the default setting for left/right click in the window
+    canvas.oncontextmenu = function(ev){
+        ev.preventDefault();
+    }
+
     // Get the rendering context for WebGL
     var gl = getWebGLContext(canvas);
     if (!gl) {
@@ -64,7 +69,7 @@ function click(ev, gl, canvas) {
         }
     }
     else if(ev.button === 2){
-        positions = positions.concat(trees(x, y, 1));
+        positions = positions.concat(trees(x, y, 2));
         var len = positions.length;
         len /= 3;
         for(var i = 0; i < len; i++){
@@ -128,7 +133,7 @@ function click(ev, gl, canvas) {
 
     // Set the matrix to be used for to set the camera view
     var viewMatrix = new Matrix4();
-    viewMatrix.setLookAt(0.20, 0.25, 0.25, 0, 0, 0, 0, 1, 0);
+    viewMatrix.setLookAt(0, 0, 10, 0, 0, 0, 0, 1, 0);
 
     // Set the view matrix
     gl.uniformMatrix4fv(u_ViewMatrix, false, viewMatrix.elements);
@@ -136,20 +141,21 @@ function click(ev, gl, canvas) {
     // Clear <canvas>
     gl.clear(gl.COLOR_BUFFER_BIT);
 
+    var len = positions.length;
     // Draw the rectangle
-    gl.drawArrays(gl.LINES, 0, n);
+    gl.drawArrays(gl.LINES, 0, len/3);
 }
 
 /* trees:
  * input:
- * x, y: coordinate pf your click
+ * x, y: coordinate of your click
  * n: 1 to choose red tree, 2 to choose blue tree
  * output:
  * an array that stores all the coordinates to be passed to buffer
  */
 function trees(x, y, n){
-    var str1 = generate_expression(4, "");
-    var str2 = generate_expression(6, "");
+    var str1 = generate_expression(2, "");
+    var str2 = generate_expression(2, "");
     if(n === 1){
         return generate_tree(x, y, str1, 50);
     }
@@ -171,9 +177,9 @@ function generate_tree(x, y, str, l){
     var stack = [];
     var m = [];
     m.push(x); m.push(y); m.push(0);
-    m.push(x); m.push(y); m.push(l); 
+    m.push(x); m.push(y); m.push(l);
     for(var i = 0; i < len;){
-        if(str[i] === 1){
+        if(str[i] === '1'){
             var j;
             stack.push([x, y, 0]);
             stack.push([x, y, 0]);
@@ -275,6 +281,9 @@ function generate_tree(x, y, str, l){
 function generate_point(x0, y0, z0, x1, y1, z1, x2, y2, z2, alpha, beta){
     var v0 = [x1-x0, y1-y0, z1-z0]; // father vector
     var v1 = [x2-x1, y2-y1, z2-z1]; // current vector
+    var nx = [];
+    var ny = [];
+    var nz = [];
 
     // calculate the (nx, ny, nz) for the current space
     var l0 = Math.sqrt((x1-x0)^2+(y1-y0)^2+(z1-z0)^2);
