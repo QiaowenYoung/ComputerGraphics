@@ -64,15 +64,6 @@ function click(ev, gl, canvas) {
     x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
     y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
 
-    // Store the coordinates to positions array
-    positions.push(x);
-    positions.push(y);
-    positions.push(0);
-    positions.push(x);
-    positions.push(y);
-    positions.push(50);
-    
-
     if (ev.button === 0){
         colors.push(1.0);
         colors.push(0.0);
@@ -85,7 +76,8 @@ function click(ev, gl, canvas) {
         colors.push(1.0);
         colors.push(1.0);
     }
-    
+
+    positions = tree1(x, y);
 
     // Create a buffer object
     var positionBuffer = gl.createBuffer();
@@ -139,26 +131,52 @@ function click(ev, gl, canvas) {
     // Set the view matrix
     gl.uniformMatrix4fv(u_ViewMatrix, false, viewMatrix.elements);
 
-    var len = positions.length / 6;
+    var len = positions.length / 3;
 
     // Draw the lines
     gl.drawArrays(gl.LINES, 0, len);
 }
 
 function tree1(x, y){
-    var m;
+    var m = [];
     m.push(x); m.push(y); m.push(0);
     m.push(x); m.push(y); m.push(50);
-    m.push(x); m.push(y); m.push(50);
-    var r1 = tree(x, y, 0, x, y, 1, x, y, 0, x, y, 50);
+    var r1 = tree(x, y, 0, x, y, 50, x, y, 0, x, y, 1);
     for (var i = 0; i < 3; i++){
+        m.push(x); m.push(y); m.push(50);
         var vec = r1[i];
         for (var j = 0; j < 3; j++){
             m.push(vec[j]);
         }
-        m.push(x); m.push(y); m.push(50);
     }
-    
+    var r10 = r1[0];
+    var r20 = tree(x, y, 50, r10[0], r10[1], r10[2], x, y, 0, x, y, 50);
+    for (var i = 0; i < 3; i++){
+        m.push(r10[0]); m.push(r10[1]); m.push(r10[2]);
+        var vec = r20[i];
+        for (var j = 0; j < 3; j++){
+            m.push(vec[j]);
+        }
+    }
+    var r11 = r1[1];
+    var r21 = tree(x, y, 50, r11[0], r11[1], r11[2], x, y, 0, x, y, 50);
+    for (var i = 0; i < 3; i++){
+        m.push(r11[0]); m.push(r11[1]); m.push(r11[2]);
+        var vec = r21[i];
+        for (var j = 0; j < 3; j++){
+            m.push(vec[j]);
+        }
+    }
+    var r12 = r1[2];
+    var r22 = tree(x, y, 50, r12[0], r12[1], r12[2], x, y, 0, x, y, 50);
+    for (var i = 0; i < 3; i++){
+        m.push(r12[0]); m.push(r12[1]); m.push(r12[2]);
+        var vec = r22[i];
+        for (var j = 0; j < 3; j++){
+            m.push(vec[j]);
+        }
+    }
+    return m;
 }
 
 function tree(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4){
@@ -166,7 +184,7 @@ function tree(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4){
     var alpha1 = 0;
     var alpha2 = 120*Math.PI/180;
     var alpha3 = 240*Math.PI/180;
-    var m;
+    var m = [];
     m.push(generate(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4, alpha1, beta));
     m.push(generate(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4, alpha2, beta));
     m.push(generate(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4, alpha3, beta));
@@ -175,16 +193,16 @@ function tree(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4){
 
 function generate(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4, alpha, beta){
     var x, y, z, u, t, v, a, b, c, m, n, p;
-    var nx, ny, nz;
+    var nx = [], ny = [], nz = [];
     x = x2-x1; y = y2-y1; z = z2-z1;
     a = x4-x3; b = y4-y3; c = z4-z3;
-    var len = sqrt(x^2+y^2+z^2);
-    var len1 = sqrt(a^2+b^2+c^2);
+    var len = Math.sqrt(x^2+y^2+z^2);
+    var len1 = Math.sqrt(a^2+b^2+c^2);
     x = x/len; y = y/len; z = z/len;
     nz.push(x); nz.push(y); nz.push(z);
-    a = a/len1*sqrt(2);
-    b = b/len1*sqrt(2);
-    c = c/len1*sqrt(2);
+    a = a/len1*Math.sqrt(2);
+    b = b/len1*Math.sqrt(2);
+    c = c/len1*Math.sqrt(2);
     m = a-x; n = b-y; p = c-z;
     m = -m; n = -n; p = -p;
     nx.push(m); nx.push(n); nx.push(p);
@@ -194,18 +212,18 @@ function generate(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4, alpha, beta){
     ny.push(nz[0]*nx[1]-nz[1]*nx[0]);
 
     u = 0; t = 0; v = 1;
-    u = u*sin(beta)+v*cos(beta);
+    u = u*Math.sin(beta)+v*Math.cos(beta);
     t = 0;
-    v = u*cos(beta)-v*sin(beta);
+    v = u*Math.cos(beta)-v*Math.sin(beta);
 
-    u = u*cos(alpha)-t*sin(alpha);
-    t = u*sin(alpha)+t*cos(alpha);
+    u = u*Math.cos(alpha)-t*Math.sin(alpha);
+    t = u*Math.sin(alpha)+t*Math.cos(alpha);
     v = v;
 
     var vec = [u, t, v];
     var vec0 = [x2, y2, z2];
     vec = vec[0]*nx+vec[1]*ny+vec[2]*nz;
-    vec = vec/(sqrt((vec[0])^2+(vec[1])^2+(vec[2])^2));
+    vec = vec/(Math.sqrt((vec[0])^2+(vec[1])^2+(vec[2])^2));
     vec = vec*len/2;
     vec = vec + vec0;
 

@@ -1,0 +1,322 @@
+// Vertex shader program
+var VSHADER_SOURCE =
+    'attribute vec4 a_Position;\n' +
+    'attribute vec4 a_Color;\n' +
+    'uniform mat4 u_ViewMatrix;\n' +
+    'varying vec4 v_Color;\n' +
+    'void main() {\n' +
+    '  gl_Position = u_ViewMatrix * a_Position;\n' +
+    '  v_Color = a_Color;\n' +
+    '}\n';
+
+// Fragment shader program
+var FSHADER_SOURCE =
+    '#ifdef GL_ES\n' +
+    'precision mediump float;\n' +
+    '#endif\n' +
+    'varying vec4 v_Color;\n' +
+    'void main() {\n' +
+    '  gl_FragColor = v_Color;\n' +
+    '}\n';
+
+var positions = [];
+var colors = [];
+function main() {
+    // Retrieve <canvas> element
+    var canvas = document.getElementById('webgl');
+
+    // Get the rendering context for WebGL
+    var gl = getWebGLContext(canvas);
+    if (!gl) {
+        console.log('Failed to get the rendering context for WebGL');
+        return;
+    }
+
+    // Initialize shaders
+    if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) {
+        console.log('Failed to intialize shaders.');
+        return;
+    }
+
+    // Register function (event handler) to be called on a mouse press
+    canvas.onmousedown = function (ev) { click(ev, gl, canvas) };
+
+    // Specify the color for clearing <canvas>
+    gl.clearColor(1, 1, 1, 1);
+}
+
+function click(ev, gl, canvas) {
+    var x = ev.clientX; // x coordinate of a mouse pointer
+    var y = ev.clientY; // y coordinate of a mouse pointer
+    var rect = ev.target.getBoundingClientRect();
+
+    x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
+    y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
+
+    if(ev.button === 0){
+        positions = positions.concat(trees(x, y, 1));
+        var len = positions.length;
+        len /= 3; // calculate the number of total points
+        for(var i = 0; i < len; i++){
+            colors.push(1.0);
+            colors.push(0.0);
+            colors.push(0.0);
+        }
+    }
+    else if(ev.button === 2){
+        positions = positions.concat(trees(x, y, 1));
+        var len = positions.length;
+        len /= 3;
+        for(var i = 0; i < len; i++){
+            colors.push(0.0);
+            colors.push(0.0);
+            colors.push(1.0);
+        }
+    }
+
+    // Create a buffer object
+    var positionbuffer = gl.createBuffer();
+    if (!positionbuffer) {
+        console.log('Failed to create the buffer object');
+        return -1;
+    }
+
+    // Write the vertex coordinates and color to the buffer object
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionbuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+
+    //var FSIZE = verticesColors.BYTES_PER_ELEMENT;
+    // Assign the buffer object to a_Position and enable the assignment
+    var a_Position = gl.getAttribLocation(gl.program, 'a_Position');
+    if (a_Position < 0) {
+        console.log('Failed to get the storage location of a_Position');
+        return -1;
+    }
+    //gl.vertexAttribPointer(a_Position, 3, gl.FLOAT, false, FSIZE * 6, 0);
+    gl.vertexAttribPointer(a_Position, 3, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(a_Position);
+
+    // Create a buffer object
+    var colorbuffer = gl.createBuffer();
+    if (!colorbuffer) {
+        console.log('Failed to create the buffer object');
+        return -1;
+    }
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorbuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+
+    // Assign the buffer object to a_Color and enable the assignment
+    var a_Color = gl.getAttribLocation(gl.program, 'a_Color');
+    if (a_Color < 0) {
+        console.log('Failed to get the storage location of a_Color');
+        return -1;
+    }
+    //gl.vertexAttribPointer(a_Color, 3, gl.FLOAT, false, FSIZE * 6, FSIZE * 3);
+    gl.vertexAttribPointer(a_Color, 3, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(a_Color);
+
+    // Unbind the buffer object
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+    // Get the storage location of u_ViewMatrix
+    var u_ViewMatrix = gl.getUniformLocation(gl.program, 'u_ViewMatrix');
+    if (!u_ViewMatrix) {
+        console.log('Failed to get the storage locations of u_ViewMatrix');
+        return;
+    }
+
+    // Set the matrix to be used for to set the camera view
+    var viewMatrix = new Matrix4();
+    viewMatrix.setLookAt(0.20, 0.25, 0.25, 0, 0, 0, 0, 1, 0);
+
+    // Set the view matrix
+    gl.uniformMatrix4fv(u_ViewMatrix, false, viewMatrix.elements);
+
+    // Clear <canvas>
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // Draw the rectangle
+    gl.drawArrays(gl.LINES, 0, n);
+}
+
+/* trees:
+ * input:
+ * x, y: coordinate pf your click
+ * n: 1 to choose red tree, 2 to choose blue tree
+ * output:
+ * an array that stores all the coordinates to be passed to buffer
+ */
+function trees(x, y, n){
+    var str1 = generate_expression(4, "");
+    var str2 = generate_expression(6, "");
+    if(n === 1){
+        return generate_tree(x, y, str1, 50);
+    }
+    else{
+        return generate_tree(x, y, str2, 40);
+    }
+}
+
+/* generate_tree:
+ * input:
+ * x, y: coordinate of your click
+ * str: rules that the program will follow
+ * l: the default starting length of segment
+ * output:
+ * an array that stores all the coordinates to be passed to buffer
+ */
+function generate_tree(x, y, str, l){
+    var len = str.length;
+    var stack = [];
+    var m = [];
+    var x0, y0, z0;
+    x0 = x; y0 = y; z0 = 50;
+    m.push(x); m.push(y); m.push(0);
+    m.push(x); m.push(y); m.push(l);
+    m.push(x); m.push(y); m.push(l);
+    for(var i = 0; i < len;){
+        if(str[i] === 1){
+            var j;
+            stack.push([x0, y0, z0]);
+            for(j = i; j < len && str[j] === '1'; j++);
+            i = j;
+            continue;
+        }
+        if(str[i] === 'a'){
+            var v = generate_point();
+            if(str[i+1] === '1'){
+                m = m.concat(v);
+                stack.push(v);
+                var j;
+                for(j = i+1; j < len && str[j] === '1'; j++);
+                i = j;
+                continue;
+            }
+            else{
+                m = m.concat(v);
+                i = i+2;
+                continue;
+            }
+        }
+        if(str[i] === 'b'){
+            var v = generate_point();
+            if(str[i+1] === '1'){
+                m = m.concat(v);
+                stack.push(v);
+                var j;
+                for(j = i+1; j < len && str[j] === '1'; j++);
+                i = j;
+                continue;
+            }
+            else{
+                m = m.concat(v);
+                i = i+2;
+                continue;
+            }
+        }
+        if(str[i] === 'c'){
+            var v = generate_point();
+            if(str[i+1] === '1'){
+                m = m.concat(v);
+                stack.push(v);
+                var j;
+                for(j = i+1; j < len && str[j] === '1'; j++);
+                i = j;
+                continue;
+            }
+            else{
+                m = m.concat(v);
+                i = i+2;
+                stack.pop();
+                continue;
+            }
+        }
+    }
+    return m;
+}
+
+/* generate_point:
+ * input:
+ * x0, y0, z0: grandfather of current point
+ * x1, y1, z1: father of current point
+ * x2, y2, z2: current point
+ * alpha: rotation angle1
+ * beta: rotation angle2
+ * output:
+ * an array of the coordinate of next point to be generated
+ */
+function generate_point(x0, y0, z0, x1, y1, z1, x2, y2, z2, alpha, beta){
+    var v0 = [x1-x0, y1-y0, z1-z0]; // father vector
+    var v1 = [x2-x1, y2-y1, z2-z1]; // current vector
+
+    // calculate the (nx, ny, nz) for the current space
+    var l0 = Math.sqrt((x1-x0)^2+(y1-y0)^2+(z1-z0)^2);
+    var l1 = Math.sqrt((x2-x1)^2+(y2-y1)^2+(z2-z1)^2);
+    // standardize v0 and v1
+    v0 /= l0;
+    v1 /= l1;
+    nz = v1;
+    nx = Math.sqrt(2)*v0-v1;
+    ny.push(nz[1]*nx[2]-nx[2]*nx[1]);
+    ny.push(nz[2]*nx[0]-nx[2]*nz[0]);
+    ny.push(nz[0]*nx[1]-nx[0]*nz[1]);
+    
+    // rotate by y'_axis for beta, then by z'_axis for alpha
+    var u, t, v;
+    u = 0; t = 0; v = 1;
+    u = u*Math.sin(beta)+v*Math.cos(beta);
+    t = 0;
+    v = u*Math.cos(beta)-v*Math.sin(beta);
+
+    u = u*Math.cos(alpha)-t*Math.sin(alpha);
+    t = u*Math.sin(alpha)+t*Math.cos(alpha);
+    v = v;
+    
+    // change base vectors from [nx, ny, nz] to [X, Y, Z]
+    var vec;
+    vec = u*nx+t*ny+v*nz;
+    var l = Math.sqrt(u^2+t^2+v^2);
+    vec /= l;
+    vec *= l1/2;
+    vec += [x2, y2, z2];
+    return vec;
+}
+
+/* generate_expression:
+ * input:
+ * n: recursion times
+ * str: result from the last recursion
+ * output:
+ * a string that represents rules
+ */
+function generate_expression(n, str){
+    var str_next = "";
+    if(n === 0){
+        return str;
+    }
+    else if(str === ""){
+        str_next = "0";
+        return generate_expression(n, str_next);
+    }
+    else {
+        for (var i = 0; i < str.length; i++) {
+            if (str[i] === '0') {
+                str_next += "1a0b0c0";
+            }
+            else if (str[i] === '1') {
+                str_next += "11";
+            }
+            else if (str[i] === 'a') {
+                str_next += "a";
+            }
+            else if (str[i] === 'b') {
+                str_next += "b";
+            }
+            else if (str[i] === 'c') {
+                str_next += "c";
+            }
+        }
+        return generate_expression(n - 1, str_next);
+    }
+}
