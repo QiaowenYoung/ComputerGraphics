@@ -170,22 +170,29 @@ function generate_tree(x, y, str, l){
     var len = str.length;
     var stack = [];
     var m = [];
-    var x0, y0, z0;
-    x0 = x; y0 = y; z0 = 50;
     m.push(x); m.push(y); m.push(0);
-    m.push(x); m.push(y); m.push(l);
-    m.push(x); m.push(y); m.push(l);
+    m.push(x); m.push(y); m.push(l); 
     for(var i = 0; i < len;){
         if(str[i] === 1){
             var j;
-            stack.push([x0, y0, z0]);
+            stack.push([x, y, 0]);
+            stack.push([x, y, 0]);
+            stack.push([x, y, l]);
             for(j = i; j < len && str[j] === '1'; j++);
             i = j;
             continue;
         }
-        if(str[i] === 'a'){
-            var v = generate_point();
+        else if(str[i] === 'a'){
+            var l = stack.length;
+            var s0 = stack[l-3];
+            var s1 = stack[l-2];
+            var s2 = stack[l-1];
+            var alpha = 0*Math.PI/180;
+            var beta = 45*Math.PI/180;
+            var v = generate_point(s0[0], s0[1], s0[2], s1[0], s1[1], s1[2], 
+                s2[0], s2[1], s2[2], alpha, beta);
             if(str[i+1] === '1'){
+                m = m.concat(s2);
                 m = m.concat(v);
                 stack.push(v);
                 var j;
@@ -194,14 +201,23 @@ function generate_tree(x, y, str, l){
                 continue;
             }
             else{
+                m = m.concat(s2);
                 m = m.concat(v);
                 i = i+2;
                 continue;
             }
         }
-        if(str[i] === 'b'){
-            var v = generate_point();
+        else if(str[i] === 'b'){
+            var l = stack.length;
+            var s0 = stack[l-3];
+            var s1 = stack[l-2];
+            var s2 = stack[l-1];
+            var alpha = 120*Math.PI/180;
+            var beta = 45*Math.PI/180;
+            var v = generate_point(s0[0], s0[1], s0[2], s1[0], s1[1], s1[2], 
+                s2[0], s2[1], s2[2], alpha, beta);
             if(str[i+1] === '1'){
+                m = m.concat(s2);
                 m = m.concat(v);
                 stack.push(v);
                 var j;
@@ -210,14 +226,23 @@ function generate_tree(x, y, str, l){
                 continue;
             }
             else{
+                m = m.concat(s2);
                 m = m.concat(v);
                 i = i+2;
                 continue;
             }
         }
-        if(str[i] === 'c'){
-            var v = generate_point();
+        else if(str[i] === 'c'){
+            var l = stack.length;
+            var s0 = stack[l-3];
+            var s1 = stack[l-2];
+            var s2 = stack[l-1];
+            var alpha = 240*Math.PI/180;
+            var beta = 45*Math.PI/180;
+            var v = generate_point(s0[0], s0[1], s0[2], s1[0], s1[1], s1[2], 
+                s2[0], s2[1], s2[2], alpha, beta);
             if(str[i+1] === '1'){
+                m = m.concat(s2);
                 m = m.concat(v);
                 stack.push(v);
                 var j;
@@ -226,6 +251,7 @@ function generate_tree(x, y, str, l){
                 continue;
             }
             else{
+                m = m.concat(s2);
                 m = m.concat(v);
                 i = i+2;
                 stack.pop();
