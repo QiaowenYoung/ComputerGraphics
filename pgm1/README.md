@@ -4,7 +4,6 @@ Debugging & Thoughts
 This is caused by the inappropriate use of gl.drawArray(). At first, I kept creating new trees and stored their coordinates in one array.
 Although idk why it shall cause canvas to blank out, still it's not an efficient way to generate trees. Since every tree is of the same type, 
 I will just need to create one tree at (0, 0), and translate it to (Tx, Ty). This can be done easily through setting gl_Position = a_Position + u_Translation.
-<br>
 * Trees are strange
 I got stuck in the algorithm for a long time. I used to include ways of parsing a string, which describes the fractal rule used for generating, 
 to define how to grow a tree. Later I found it not necessary. I then referrd to preorder traversal, using recursions to handle it. 
