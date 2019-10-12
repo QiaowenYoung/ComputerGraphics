@@ -206,10 +206,10 @@ function trees(n) {
  * For a branch, I will do recursion on its leaves one by one
  */
 function generate_tree(x0, y0, z0, x1, y1, z1, level_now, level, l0, tag) {
-    if(level_now === 0){
-        var v1 = generate_point(x0, y0, z0, x1, y1, z1, level - level_now, l0, 0, Math.PI/4);
-        var v2 = generate_point(x0, y0, z0, x1, y1, z1, level - level_now, l0, Math.PI*2/3, Math.PI/4);
-        var v3 = generate_point(x0, y0, z0, x1, y1, z1, level - level_now, l0, Math.PI*4/3, Math.PI/4);
+    if (level_now === 0) {
+        var v1 = generate_point(x0, y0, z0, x1, y1, z1, level - level_now, l0, 0, Math.PI / 4);
+        var v2 = generate_point(x0, y0, z0, x1, y1, z1, level - level_now, l0, Math.PI * 2 / 3, Math.PI / 4);
+        var v3 = generate_point(x0, y0, z0, x1, y1, z1, level - level_now, l0, Math.PI * 4 / 3, Math.PI / 4);
         if (tag === 1) {
             ml.push(x1); ml.push(y1); ml.push(z1);
             ml = ml.concat(v1);
@@ -218,7 +218,7 @@ function generate_tree(x0, y0, z0, x1, y1, z1, level_now, level, l0, tag) {
             ml.push(x1); ml.push(y1); ml.push(z1);
             ml = ml.concat(v3);
         }
-        else{
+        else {
             mr.push(x1); mr.push(y1); mr.push(z1);
             mr = mr.concat(v1);
             mr.push(x1); mr.push(y1); mr.push(z1);
@@ -227,11 +227,11 @@ function generate_tree(x0, y0, z0, x1, y1, z1, level_now, level, l0, tag) {
             mr = mr.concat(v3);
         }
     }
-    else{
-        var v1 = generate_point(x0, y0, z0, x1, y1, z1, level - level_now, l0, 0, Math.PI/4);
-        var v2 = generate_point(x0, y0, z0, x1, y1, z1, level - level_now, l0, Math.PI*2/3, Math.PI/4);
-        var v3 = generate_point(x0, y0, z0, x1, y1, z1, level - level_now, l0, Math.PI*4/3, Math.PI/4);
-        if(tag === 1){
+    else {
+        var v1 = generate_point(x0, y0, z0, x1, y1, z1, level - level_now, l0, 0, Math.PI / 4);
+        var v2 = generate_point(x0, y0, z0, x1, y1, z1, level - level_now, l0, Math.PI * 2 / 3, Math.PI / 4);
+        var v3 = generate_point(x0, y0, z0, x1, y1, z1, level - level_now, l0, Math.PI * 4 / 3, Math.PI / 4);
+        if (tag === 1) {
             ml.push(x1); ml.push(y1); ml.push(z1);
             ml = ml.concat(v1);
             generate_tree(x1, y1, z1, v1[0], v1[1], v1[2], level_now - 1, level, l0, tag);
@@ -242,7 +242,7 @@ function generate_tree(x0, y0, z0, x1, y1, z1, level_now, level, l0, tag) {
             ml = ml.concat(v3);
             generate_tree(x1, y1, z1, v3[0], v3[1], v3[2], level_now - 1, level, l0, tag);
         }
-        else{
+        else {
             mr.push(x1); mr.push(y1); mr.push(z1);
             mr = mr.concat(v1);
             generate_tree(x1, y1, z1, v1[0], v1[1], v1[2], level_now - 1, level, l0, tag);
@@ -320,12 +320,9 @@ function generate_point(x0, y0, z0, x1, y1, z1, level_now, l0, alpha, beta) {
     var m22 = Math.pow(axis[2], 2) * (1 - Math.cos(r_angle)) + Math.cos(r_angle);
 
     // Do matrix multiplication:
-    // | m00 m01 m02 |   | x |
-    // | m10 m11 m12 | * | y |
-    // | m20 m21 m22 |   | z |
-    v.push(m00 * x + m01 * y + m02 * z);
-    v.push(m10 * x + m11 * y + m12 * z);
-    v.push(m20 * x + m21 * y + m22 * z);
+    v.push(m00 * x + m10 * y + m20 * z);
+    v.push(m01 * x + m11 * y + m21 * z);
+    v.push(m02 * x + m12 * y + m22 * z);
 
     // Do translation:
     v[0] = v[0] + x1;
