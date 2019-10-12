@@ -12,5 +12,5 @@ rotation matrix. I failed a lot, although at that time I always thought I was ne
 matrix to place the next point on its right position.
 * About WebGL<br>
 I got some experience from lab1, that a buffer must and can only be bound to one source of data at a single time. Only after these data are passed and done over, 
-can another gl.bufferData be used for another array of data.<br>
+can gl.bufferData() be used for another array of data.<br>
 Pgm1 shows that WebGL may not be a fancy and difficult API. The most tricky bugs still come from algorithm.
