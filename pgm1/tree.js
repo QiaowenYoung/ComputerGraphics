@@ -320,9 +320,9 @@ function generate_point(x0, y0, z0, x1, y1, z1, level_now, l0, alpha, beta) {
     var m22 = Math.pow(axis[2], 2) * (1 - Math.cos(r_angle)) + Math.cos(r_angle);
 
     // Do matrix multiplication:
-    v.push(m00 * x + m10 * y + m20 * z);
-    v.push(m01 * x + m11 * y + m21 * z);
-    v.push(m02 * x + m12 * y + m22 * z);
+    v.push(m00 * x + m01 * y + m02 * z);
+    v.push(m10 * x + m11 * y + m12 * z);
+    v.push(m20 * x + m21 * y + m22 * z);
 
     // Do translation:
     v[0] = v[0] + x1;
