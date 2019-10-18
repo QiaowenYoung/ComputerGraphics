@@ -1,35 +1,7 @@
-/*
 // Vertex shader program
 var VSHADER_SOURCE =
     'attribute vec4 a_Position;\n' +
-    'uniform mat4 u_MvpMatrix;\n' +
-    'attribute vec3 a_normal;\n' + // normal of the plane, I need to transfer data to it
-    'varying vec3 v_normal;\n' +
-    'void main() {\n' +
-    '  gl_Position = u_MvpMatrix * a_Position;\n' +
-    '  v_normal = a_normal;\n' + // transfer to fragment shader program
-    '}\n';
-
-// Fragment shader program
-var FSHADER_SOURCE =
-    '#ifdef GL_ES\n' +
-    'precision mediump float;\n' +
-    '#endif\n' +
-    'varying vec3 v_normal;\n' +
-    'uniform vec4 u_color;\n' + // color of light, default to be (1.0, 1.0, 1.0)
-    'uniform vec3 u_reverseLightDirection;\n' + // direction of light
-    'void main() {\n' +
-    '  vec3 normal = normalize(v_normal);\n' +
-    '  float light = dot(normal, u_reverseLightDirection);\n' +
-    '  vec3 diffuse = u_color.rgb * vec3(1.0, 0.0, 0.0) * light;\n' +
-    '  gl_FragColor = vec4(diffuse, 1.0);\n' +
-    '}\n';
-*/
-
-// Vertex shader program
-var VSHADER_SOURCE =
-    'attribute vec4 a_Position;\n' +
-    //'attribute vec4 a_Color;\n' + 
+    'attribute vec4 a_Color;\n' +
     'attribute vec3 a_Normal;\n' +        // Normal
     'uniform mat4 u_MvpMatrix;\n' +
     'uniform vec3 u_LightColor;\n' +     // Light color
@@ -42,8 +14,8 @@ var VSHADER_SOURCE =
     // Dot product of the light direction and the orientation of a surface (the normal)
     '  float nDotL = max(dot(u_LightDirection, normal), 0.0);\n' +
     // Calculate the color due to diffuse reflection
-    '  vec3 diffuse = u_LightColor * vec3(1.0, 0.0, 0.0) * nDotL;\n' +
-    '  v_Color = vec4(diffuse, 1.0);\n' +
+    '  vec3 diffuse = u_LightColor * a_Color.rgb * nDotL;\n' +
+    '  v_Color = vec4(diffuse, a_Color.a);\n' +
     '}\n';
 
 // Fragment shader program
@@ -57,7 +29,9 @@ var FSHADER_SOURCE =
     '}\n';
 
 var points = [];
+var colors = [];
 var n = [];
+var shown = [];
 var toggle1 = 0, toggle2 = 0, toggle3 = 0;
 function main() {
     // Retrieve <canvas> element
@@ -78,9 +52,8 @@ function main() {
         return;
     }
 
-    generate_tc(); // generate points stored in the array points
-
     /* decide positions */
+    generate_tc(); // generate points stored in the array points
     var vertices = new Float32Array(points);
     // Create a buffer object
     var positionbuffer = gl.createBuffer();
@@ -99,6 +72,28 @@ function main() {
     }
     gl.vertexAttribPointer(a_Position, 3, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(a_Position);
+    /* end */
+
+    /* decide colors of the polygon itself */
+    setColors();
+    var vertexcolors = new Float32Array(colors);
+    // Create a buffer object
+    var colorbuffer = gl.createBuffer();
+    if (!colorbuffer) {
+        console.log('Failed to create the buffer object');
+        return -1;
+    }
+    // Write the vertex coordinates and color to the buffer object
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorbuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, vertexcolors, gl.STATIC_DRAW);
+    // Assign the buffer object to a_Position and enable the assignment
+    var a_Color = gl.getAttribLocation(gl.program, 'a_Color');
+    if (a_Color < 0) {
+        console.log('Failed to get the storage location of a_Color');
+        return -1;
+    }
+    gl.vertexAttribPointer(a_Color, 4, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(a_Color);
     /* end */
 
     /* decide normals */
@@ -181,21 +176,9 @@ function main() {
             toggle2 = 0;
             if (toggle1 == 0) {
                 setTopView(gl);
-                if (toggle1 == 0) {
-                    setTopView(gl);
-                }
-                else {
-                    setSideView(gl);
-                }
             }
             else {
                 setSideView(gl);
-                if (toggle1 == 0) {
-                    setTopView(gl);
-                }
-                else {
-                    setSideView(gl);
-                }
             }
         }
     });
@@ -204,12 +187,65 @@ function main() {
     checkbox3.addEventListener('change', function () {
         if (checkbox3.checked) {
             toggle3 = 1;
+            if (toggle1 == 0) {
+                setTopView(gl);
+            }
+            else {
+                setSideView(gl);
+            }
         } else {
             toggle3 = 0;
+            if (toggle1 == 0) {
+                setTopView(gl);
+            }
+            else {
+                setSideView(gl);
+            }
         }
     });
 }
 
+/* showNormals
+ * input:
+ * gl
+ * output:
+ * none
+ * use:
+ * display normals for each polygon plane
+ */
+function showNormals(gl) {
+    var len = points.length;
+    for (var i = 0; i < len; i++) {
+        shown.push(n[i] + points[i]);
+    }
+}
+
+/* setColors
+ * input:
+ * none
+ * output:
+ * none
+ * use:
+ * initialize values of polygon's color
+ */
+function setColors() {
+    var len = points.length / 3;
+    for (var i = 0; i < len; i++) {
+        colors.push(1.0);
+        colors.push(0.0);
+        colors.push(0.0);
+        colors.push(1.0);
+    }
+}
+
+/* setTopView
+ * input:
+ * gl
+ * output:
+ * none
+ * use:
+ * change view to top
+ */
 function setTopView(gl) {
     // Get the storage location of u_MvpMatrix
     var u_MvpMatrix = gl.getUniformLocation(gl.program, 'u_MvpMatrix');
@@ -232,6 +268,14 @@ function setTopView(gl) {
     }
 }
 
+/* setSideView
+ * input:
+ * gl
+ * output:
+ * none
+ * use:
+ * change view to side
+ */
 function setSideView(gl) {
     // Get the storage location of u_MvpMatrix
     var u_MvpMatrix = gl.getUniformLocation(gl.program, 'u_MvpMatrix');
