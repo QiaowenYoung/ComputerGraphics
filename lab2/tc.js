@@ -439,10 +439,10 @@ function setNormals() {
  * this cylindar is located at (0, 0)
  */
 function generate_tc() {
-    var r1 = 0.05;
-    var r2 = 0.1;
+    var r1 = 0.5;
+    var r2 = 1;
     var theta = Math.PI / 6;
-    var height = 1;
+    var height = 10;
     var topx = [], topy = [];
     var bottomx = [], bottomy = [];
     for (var i = 0; i < 13; i++) {
@@ -613,16 +613,16 @@ function initMatrix(gl, cylinderProgram, lineProgram, tag1, tag2) {
         if (tag2 == 0) { // Draw from top view
             // Set the eye point and the viewing volume
             var mvpMatrix = new Matrix4();
-            mvpMatrix.setOrtho(-1, 1, -1, 1, -2, 2);
-            mvpMatrix.setLookAt(0, 0, 1, 0, 0, 0, 0, 1, 0);
+            mvpMatrix.setPerspective(30, 1, 1, 100);
+            mvpMatrix.lookAt(0, 0, 40, 0, 0, 0, 0, 1, 0);
             // Pass the model view projection matrix to u_MvpMatrix
             gl.uniformMatrix4fv(cylinderProgram.u_MvpMatrix, false, mvpMatrix.elements);
         }
         else { // Draw from side view
             // Set the eye point and the viewing volume
             var mvpMatrix = new Matrix4();
-            mvpMatrix.setOrtho(-1, 1, -1, 1, -2, 2);
-            mvpMatrix.setLookAt(0, -1, 0.75, 0, 0, 0, 0, 1, 0);
+            mvpMatrix.setPerspective(30, 1, 1, 100);
+            mvpMatrix.lookAt(0, -40, 30, 0, 0, 0, 0, 1, 0);
             // Pass the model view projection matrix to u_MvpMatrix
             gl.uniformMatrix4fv(cylinderProgram.u_MvpMatrix, false, mvpMatrix.elements);
         }
@@ -632,16 +632,16 @@ function initMatrix(gl, cylinderProgram, lineProgram, tag1, tag2) {
         if (tag2 == 0) {
             // Set the eye point and the viewing volume
             var mvpMatrix = new Matrix4();
-            mvpMatrix.setOrtho(-1, 1, -1, 1, -2, 2);
-            mvpMatrix.setLookAt(0, 0, 1, 0, 0, 0, 0, 1, 0);
+            mvpMatrix.setPerspective(30, 1, 1, 100);
+            mvpMatrix.lookAt(0, 0, 40, 0, 0, 0, 0, 1, 0);
             // Pass the model view projection matrix to u_MvpMatrix
             gl.uniformMatrix4fv(lineProgram.u_MvpMatrix, false, mvpMatrix.elements);
         }
         else {
             // Set the eye point and the viewing volume
             var mvpMatrix = new Matrix4();
-            mvpMatrix.setOrtho(-1, 1, -1, 1, -2, 2);
-            mvpMatrix.setLookAt(0, -1, 0.75, 0, 0, 0, 0, 1, 0);
+            mvpMatrix.setPerspective(30, 1, 1, 100);
+            mvpMatrix.lookAt(0, -40, 30, 0, 0, 0, 0, 1, 0);
             // Pass the model view projection matrix to u_MvpMatrix
             gl.uniformMatrix4fv(lineProgram.u_MvpMatrix, false, mvpMatrix.elements);
         }
