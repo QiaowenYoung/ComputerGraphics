@@ -3,12 +3,13 @@ var VSHADER_SOURCE =
     'attribute vec4 a_Position;\n' +
     'attribute vec4 a_Color;\n' +
     'attribute vec3 a_Normal;\n' +        // Normal
-    'uniform mat4 u_MvpMatrix;\n' +
+    'uniform mat4 u_ViewMatrix;\n' +
+    'uniform mat4 u_ProjMatrix;\n' +
     'uniform vec3 u_LightColor;\n' +     // Light color
     'uniform vec3 u_LightDirection;\n' + // Light direction (in the world coordinate, normalized)
     'varying vec4 v_Color;\n' +
     'void main() {\n' +
-    '  gl_Position = u_MvpMatrix * a_Position ;\n' +
+    '  gl_Position = u_ProjMatrix * u_ViewMatrix * a_Position;\n' +
     // Make the length of the normal 1.0
     '  vec3 normal = normalize(a_Normal);\n' +
     // Dot product of the light direction and the orientation of a surface (the normal)
@@ -31,9 +32,10 @@ var FSHADER_SOURCE =
 // Vertex shader for normal display
 var vshader =
     'attribute vec4 a_Position;\n' +
-    'uniform mat4 u_MvpMatrix;\n' +
+    'uniform mat4 u_ViewMatrix;\n' +
+    'uniform mat4 u_ProjMatrix;\n' +
     'void main() {\n' +
-    '  gl_Position = u_MvpMatrix * a_Position;\n' +
+    '  gl_Position = u_ProjMatrix * u_ViewMatrix * a_Position;\n' +
     '}\n';
 
 // Fragment shader for normal display
@@ -74,19 +76,22 @@ function main() {
     cylinderProgram.a_Position = gl.getAttribLocation(cylinderProgram, 'a_Position');
     cylinderProgram.a_Color = gl.getAttribLocation(cylinderProgram, 'a_Color');
     cylinderProgram.a_Normal = gl.getAttribLocation(cylinderProgram, 'a_Normal');
-    cylinderProgram.u_MvpMatrix = gl.getUniformLocation(cylinderProgram, 'u_MvpMatrix');
+    cylinderProgram.u_ViewMatrix = gl.getUniformLocation(cylinderProgram, 'u_ViewMatrix');
+    cylinderProgram.u_ProjMatrix = gl.getUniformLocation(cylinderProgram, 'u_ProjMatrix');
     cylinderProgram.u_LightColor = gl.getUniformLocation(cylinderProgram, 'u_LightColor');
     cylinderProgram.u_LightDirection = gl.getUniformLocation(cylinderProgram, 'u_LightDirection');
     if (cylinderProgram.a_Position < 0 || cylinderProgram.a_Color < 0 || cylinderProgram.a_Normal < 0 ||
-        cylinderProgram.u_MvpMatrix < 0 || cylinderProgram.u_LightColor < 0 || cylinderProgram.u_LightDirection < 0) {
+        cylinderProgram.u_ViewMatrix < 0 || cylinderProgram.u_ProjMatrix < 0 || cylinderProgram.u_LightColor < 0 || 
+        cylinderProgram.u_LightDirection < 0) {
         console.log('Failed to locate variables for cylinder');
         return -1;
     }
 
     // Get location of all the variables for drawing normals
     lineProgram.a_Position = gl.getAttribLocation(lineProgram, 'a_Position');
-    lineProgram.u_MvpMatrix = gl.getUniformLocation(lineProgram, 'u_MvpMatrix');
-    if (lineProgram.a_Position < 0 || lineProgram.u_MvpMatrix < 0) {
+    lineProgram.u_ViewMatrix = gl.getUniformLocation(lineProgram, 'u_ViewMatrix');
+    lineProgram.u_ProjMatrix = gl.getUniformLocation(lineProgram, 'u_ProjMatrix');
+    if (lineProgram.a_Position < 0 || lineProgram.u_ViewMatrix < 0 || lineProgram.u_ProjMatrix < 0) {
         console.log('Failed to locate variables for lines');
         return -1;
     }
@@ -439,10 +444,10 @@ function setNormals() {
  * this cylindar is located at (0, 0)
  */
 function generate_tc() {
-    var r1 = 0.5;
-    var r2 = 1;
+    var r1 = 0.05;
+    var r2 = 0.1;
     var theta = Math.PI / 6;
-    var height = 10;
+    var height = 1;
     var topx = [], topy = [];
     var bottomx = [], bottomy = [];
     for (var i = 0; i < 13; i++) {
@@ -605,45 +610,57 @@ function initLightDirection(gl, cylinderProgram) {
  * output:
  * none
  * use:
- * initialize u_MvpMatrix
+ * initialize u_ViewMatrx and u_ProjMatrix
  */
 function initMatrix(gl, cylinderProgram, lineProgram, tag1, tag2) {
     if (tag1 == 0) { // Currently cylinderProgram in use
         gl.useProgram(cylinderProgram);
         if (tag2 == 0) { // Draw from top view
-            // Set the eye point and the viewing volume
-            var mvpMatrix = new Matrix4();
-            mvpMatrix.setPerspective(30, 1, 1, 100);
-            mvpMatrix.lookAt(0, 0, 40, 0, 0, 0, 0, 1, 0);
-            // Pass the model view projection matrix to u_MvpMatrix
-            gl.uniformMatrix4fv(cylinderProgram.u_MvpMatrix, false, mvpMatrix.elements);
+            var viewMatrix = new Matrix4();
+            viewMatrix.setLookAt(0, 0, 1, 0, 0, 0, 0, 1, 0);
+            // Set the view matrix
+            gl.uniformMatrix4fv(cylinderProgram.u_ViewMatrix, false, viewMatrix.elements);
+            // Create the matrix to set the eye point, and the line of sight
+            var projMatrix = new Matrix4();
+            projMatrix.setOrtho(-1, 1, -1, 1, -2, 2);
+            // Pass the projection matrix to u_ProjMatrix
+            gl.uniformMatrix4fv(cylinderProgram.u_ProjMatrix, false, projMatrix.elements);
         }
         else { // Draw from side view
-            // Set the eye point and the viewing volume
-            var mvpMatrix = new Matrix4();
-            mvpMatrix.setPerspective(30, 1, 1, 100);
-            mvpMatrix.lookAt(0, -40, 30, 0, 0, 0, 0, 1, 0);
-            // Pass the model view projection matrix to u_MvpMatrix
-            gl.uniformMatrix4fv(cylinderProgram.u_MvpMatrix, false, mvpMatrix.elements);
+            var viewMatrix = new Matrix4();
+            viewMatrix.setLookAt(0, -1, 0.75, 0, 0, 0, 0, 1, 0);
+            // Set the view matrix
+            gl.uniformMatrix4fv(cylinderProgram.u_ViewMatrix, false, viewMatrix.elements);
+            // Create the matrix to set the eye point, and the line of sight
+            var projMatrix = new Matrix4();
+            projMatrix.setOrtho(-1, 1, -1, 1, -2, 2);
+            // Pass the projection matrix to u_ProjMatrix
+            gl.uniformMatrix4fv(cylinderProgram.u_ProjMatrix, false, projMatrix.elements);
         }
     }
     else {
         gl.useProgram(lineProgram);
         if (tag2 == 0) {
-            // Set the eye point and the viewing volume
-            var mvpMatrix = new Matrix4();
-            mvpMatrix.setPerspective(30, 1, 1, 100);
-            mvpMatrix.lookAt(0, 0, 40, 0, 0, 0, 0, 1, 0);
-            // Pass the model view projection matrix to u_MvpMatrix
-            gl.uniformMatrix4fv(lineProgram.u_MvpMatrix, false, mvpMatrix.elements);
+            var viewMatrix = new Matrix4();
+            viewMatrix.setLookAt(0, 0, 1, 0, 0, 0, 0, 1, 0);
+            // Set the view matrix
+            gl.uniformMatrix4fv(lineProgram.u_ViewMatrix, false, viewMatrix.elements);
+            // Create the matrix to set the eye point, and the line of sight
+            var projMatrix = new Matrix4();
+            projMatrix.setOrtho(-1, 1, -1, 1, -2, 2);
+            // Pass the projection matrix to u_ProjMatrix
+            gl.uniformMatrix4fv(lineProgram.u_ProjMatrix, false, projMatrix.elements);
         }
         else {
-            // Set the eye point and the viewing volume
-            var mvpMatrix = new Matrix4();
-            mvpMatrix.setPerspective(30, 1, 1, 100);
-            mvpMatrix.lookAt(0, -40, 30, 0, 0, 0, 0, 1, 0);
-            // Pass the model view projection matrix to u_MvpMatrix
-            gl.uniformMatrix4fv(lineProgram.u_MvpMatrix, false, mvpMatrix.elements);
+            var viewMatrix = new Matrix4();
+            viewMatrix.setLookAt(0, -1, 0.75, 0, 0, 0, 0, 1, 0);
+            // Set the view matrix
+            gl.uniformMatrix4fv(lineProgram.u_ViewMatrix, false, viewMatrix.elements);
+            // Create the matrix to set the eye point, and the line of sight
+            var projMatrix = new Matrix4();
+            projMatrix.setOrtho(-1, 1, -1, 1, -2, 2);
+            // Pass the projection matrix to u_ProjMatrix
+            gl.uniformMatrix4fv(lineProgram.u_ProjMatrix, false, projMatrix.elements);
         }
     }
 }
