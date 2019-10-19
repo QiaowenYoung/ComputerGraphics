@@ -28,6 +28,7 @@ var FSHADER_SOURCE =
     '  gl_FragColor = v_Color;\n' +
     '}\n';
 
+// Vertex shader for normal display
 var vshader =
     'attribute vec4 a_Position;\n' +
     'uniform mat4 u_MvpMatrix;\n' +
@@ -35,17 +36,18 @@ var vshader =
     '  gl_Position = u_MvpMatrix * a_Position;\n' +
     '}\n';
 
+// Fragment shader for normal display
 var fshader =
     'precision mediump float;\n' +
     'void main() {\n' +
     '  gl_FragColor = vec4(0.0, 1.0, 1.0, 1.0);\n' +
     '}\n';
 
-var points = [];
-var colors = [];
-var n = [];
-var shown = [];
-var toggle1 = 0, toggle2 = 0, toggle3 = 0;
+var points = []; // coordinates of all the points on cylinder
+var colors = []; // colors of all the points on cylinder, default to be red
+var n = []; // normals of all the polygons
+var shown = []; // normals to be displyed
+var toggle1 = 0, toggle2 = 0, toggle3 = 0; // detect the status of those three toggles
 function main() {
     // Retrieve <canvas> element
     var canvas = document.getElementById('webgl');
@@ -60,6 +62,7 @@ function main() {
         return;
     }
 
+    // Initialize two programs for respectively drawing cylinder and normals
     var cylinderProgram = createProgram(gl, VSHADER_SOURCE, FSHADER_SOURCE);
     var lineProgram = createProgram(gl, vshader, fshader);
     if (!cylinderProgram || !lineProgram) {
@@ -67,6 +70,7 @@ function main() {
         return -1;
     }
 
+    // Get locations of all the variables for drawing a cylinder
     cylinderProgram.a_Position = gl.getAttribLocation(cylinderProgram, 'a_Position');
     cylinderProgram.a_Color = gl.getAttribLocation(cylinderProgram, 'a_Color');
     cylinderProgram.a_Normal = gl.getAttribLocation(cylinderProgram, 'a_Normal');
@@ -79,6 +83,7 @@ function main() {
         return -1;
     }
 
+    // Get location of all the variables for drawing normals
     lineProgram.a_Position = gl.getAttribLocation(lineProgram, 'a_Position');
     lineProgram.u_MvpMatrix = gl.getUniformLocation(lineProgram, 'u_MvpMatrix');
     if (lineProgram.a_Position < 0 || lineProgram.u_MvpMatrix < 0) {
@@ -86,17 +91,19 @@ function main() {
         return -1;
     }
 
-    generate_tc();
-    setNormals();
-    setColors();
-    setViewNormals();
-    
-    initPositions(gl, cylinderProgram, lineProgram, 0);
+    generate_tc(); // Initialize the array 'points' defined at line 46
+    setColors(); // Initialize the array 'colors' at line 47
+    setNormals(); // Initialize the array 'n' at line 48
+    setViewNormals(); // Initialize the array 'shown' at line 49
+
+    // From the names of the functions below,
+    // you can easily known what they are doing.
+    initPositions(gl, cylinderProgram, lineProgram, 0); // The last parameter '0' is to choose between two programs
     initColors(gl, cylinderProgram);
     initNormals(gl, cylinderProgram);
     initLightColor(gl, cylinderProgram);
     initLightDirection(gl, cylinderProgram);
-    initMatrix(gl, cylinderProgram,lineProgram, 0, 0);
+    initMatrix(gl, cylinderProgram, lineProgram, 0, 0); // The last two parameters are to choose between programs and top/side view
 
     // Specify the color for clearing <canvas>
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
@@ -104,9 +111,11 @@ function main() {
     // Clear color and depth buffer
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+    // Display a default view
     var len = points.length / 3;
     gl.drawArrays(gl.TRIANGLES, 0, len);
 
+    // Listen to toggle1, which is responsible for changing view
     var checkbox1 = document.getElementById('toggle1');
     checkbox1.addEventListener('change', function () {
         if (checkbox1.checked) {
@@ -118,6 +127,7 @@ function main() {
         }
     });
 
+    // Toggle2, responsible for switching between flat shading and wireframe
     var checkbox2 = document.getElementById('toggle2');
     checkbox2.addEventListener('change', function () {
         if (checkbox2.checked) {
@@ -139,6 +149,7 @@ function main() {
         }
     });
 
+    // Toggle3, for displaying normals
     var checkbox3 = document.getElementById('toggle3');
     checkbox3.addEventListener('change', function () {
         if (checkbox3.checked) {
@@ -163,23 +174,27 @@ function main() {
 
 /* setTopView
  * input:
- * gl
+ * gl and two programs
  * output:
  * none
  * use:
- * change view to top
+ * Every time you click on a toggle, setTopView or setSideView will be called.
+ * It will check the current toggles' status,
+ * then decide how to draw(topview+flatshading/wireframe)
+ * and what to draw(display cylinder/cylinder+normals).
  */
 function setTopView(gl, cylinderProgram, lineProgram) {
     var len1 = points.length / 3;
     var len2 = shown.length / 3;
-    if (toggle2 == 0 && toggle3 == 0) {
-        initPositions(gl, cylinderProgram, lineProgram, 0);
+    if (toggle2 == 0 && toggle3 == 0) { // Draw a top view, flat shading cylinder without displaying normals
+        initPositions(gl, cylinderProgram, lineProgram, 0); // The last parameter '0' is to choose cylinderProgram
         initColors(gl, cylinderProgram);
         initNormals(gl, cylinderProgram);
         initLightColor(gl, cylinderProgram);
         initLightDirection(gl, cylinderProgram);
-        initMatrix(gl, cylinderProgram,lineProgram, 0, 0);
-        
+        initMatrix(gl, cylinderProgram, lineProgram, 0, 0); // The last but one parameter is to choose cylinderProgram.
+                                                            // The last parameter is to choose a top view.
+
         // Specify the color for clearing <canvas>
         gl.clearColor(1.0, 1.0, 1.0, 1.0);
         gl.enable(gl.DEPTH_TEST);
@@ -194,8 +209,8 @@ function setTopView(gl, cylinderProgram, lineProgram) {
         initNormals(gl, cylinderProgram);
         initLightColor(gl, cylinderProgram);
         initLightDirection(gl, cylinderProgram);
-        initMatrix(gl, cylinderProgram,lineProgram, 0, 0);
-        
+        initMatrix(gl, cylinderProgram, lineProgram, 0, 0);
+
         // Specify the color for clearing <canvas>
         gl.clearColor(1.0, 1.0, 1.0, 1.0);
         gl.enable(gl.DEPTH_TEST);
@@ -252,29 +267,33 @@ function setTopView(gl, cylinderProgram, lineProgram) {
 
 /* setSideView
  * input:
- * gl
+ * gl and two programs
  * output:
  * none
  * use:
- * change view to side
+ * Every time you click on a toggle, setTopView or setSideView will be called.
+ * It will check the current toggles' status,
+ * then decide how to draw(sideview+flatshading/wireframe)
+ * and what to draw(display cylinder/cylinder+normals).
  */
 function setSideView(gl, cylinderProgram, lineProgram) {
-    var len = points.length / 3;
+    var len1 = points.length / 3;
+    var len2 = shown.length / 3;
     if (toggle2 == 0 && toggle3 == 0) {
         initPositions(gl, cylinderProgram, lineProgram, 0);
         initColors(gl, cylinderProgram);
         initNormals(gl, cylinderProgram);
         initLightColor(gl, cylinderProgram);
         initLightDirection(gl, cylinderProgram);
-        initMatrix(gl, cylinderProgram,lineProgram, 0, 1);
-        
+        initMatrix(gl, cylinderProgram, lineProgram, 0, 1);
+
         // Specify the color for clearing <canvas>
         gl.clearColor(1.0, 1.0, 1.0, 1.0);
         gl.enable(gl.DEPTH_TEST);
         // Clear color and depth buffer
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        gl.drawArrays(gl.TRIANGLES, 0, len);
+        gl.drawArrays(gl.TRIANGLES, 0, len1);
     }
     else if (toggle2 == 1 && toggle3 == 0) {
         initPositions(gl, cylinderProgram, lineProgram, 0);
@@ -282,15 +301,15 @@ function setSideView(gl, cylinderProgram, lineProgram) {
         initNormals(gl, cylinderProgram);
         initLightColor(gl, cylinderProgram);
         initLightDirection(gl, cylinderProgram);
-        initMatrix(gl, cylinderProgram,lineProgram, 0, 1);
-        
+        initMatrix(gl, cylinderProgram, lineProgram, 0, 1);
+
         // Specify the color for clearing <canvas>
         gl.clearColor(1.0, 1.0, 1.0, 1.0);
         gl.enable(gl.DEPTH_TEST);
         // Clear color and depth buffer
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        gl.drawArrays(gl.LINE_STRIP, 0, len);
+        gl.drawArrays(gl.LINE_STRIP, 0, len1);
     }
     else {
         if (toggle2 == 0) {
@@ -307,12 +326,12 @@ function setSideView(gl, cylinderProgram, lineProgram) {
             // Clear color and depth buffer
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-            gl.drawArrays(gl.TRIANGLES, 0, len);
+            gl.drawArrays(gl.TRIANGLES, 0, len1);
 
             initPositions(gl, cylinderProgram, lineProgram, 1);
             initMatrix(gl, cylinderProgram, lineProgram, 1, 1);
 
-            gl.drawArrays(gl.LINES, 0, len);
+            gl.drawArrays(gl.LINES, 0, len2);
         }
         else {
             initPositions(gl, cylinderProgram, lineProgram, 0);
@@ -328,22 +347,32 @@ function setSideView(gl, cylinderProgram, lineProgram) {
             // Clear color and depth buffer
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-            gl.drawArrays(gl.LINE_STRIP, 0, len);
+            gl.drawArrays(gl.LINE_STRIP, 0, len1);
 
             initPositions(gl, cylinderProgram, lineProgram, 1);
             initMatrix(gl, cylinderProgram, lineProgram, 1, 1);
 
-            gl.drawArrays(gl.LINES, 0, len);
+            gl.drawArrays(gl.LINES, 0, len2);
         }
     }
 }
 
-function setViewNormals(){
+/* setViewNormals
+ * input:
+ * none
+ * output:
+ * none
+ * use:
+ * initialize normals to be displayed
+ */
+function setViewNormals() {
     var len = points.length;
     for (var i = 0; i < len; i += 3) {
+        // The first 3 values pushed into the array are (x, y, z) of the starting point.
         shown.push(points[i]);
         shown.push(points[i + 1]);
         shown.push(points[i + 2]);
+        // These 3 values are the ending point of the normal.
         shown.push(n[i] / 2 + points[i]);
         shown.push(n[i + 1] / 2 + points[i + 1]);
         shown.push(n[i + 2] / 2 + points[i + 2]);
@@ -356,7 +385,7 @@ function setViewNormals(){
  * output:
  * none
  * use:
- * initialize values of polygon's color
+ * initialize polygon's color, default to be red
  */
 function setColors() {
     var len = points.length / 3;
@@ -448,6 +477,15 @@ function generate_tc() {
     }
 }
 
+/* initPositions
+ * input:
+ * gl and two programs
+ * tag: 0 to use cylinderProgram, 1 to use lineProgram
+ * output:
+ * none
+ * use:
+ * initialize a_Position
+ */
 function initPositions(gl, cylinderProgram, lineProgram, tag) {
     if (tag == 0) {
         gl.useProgram(cylinderProgram);
@@ -481,6 +519,14 @@ function initPositions(gl, cylinderProgram, lineProgram, tag) {
     }
 }
 
+/* initColors
+ * input:
+ * gl, cylinderProgram
+ * output:
+ * none
+ * use:
+ * initialize a_Color
+ */
 function initColors(gl, cylinderProgram) {
     gl.useProgram(cylinderProgram);
     var vertexcolors = new Float32Array(colors);
@@ -497,6 +543,14 @@ function initColors(gl, cylinderProgram) {
     gl.enableVertexAttribArray(cylinderProgram.a_Color);
 }
 
+/* initNormals
+ * input:
+ * gl, cylinderProgram
+ * output:
+ * none
+ * use:
+ * initialize a_Normal
+ */
 function initNormals(gl, cylinderProgram) {
     gl.useProgram(cylinderProgram);
     var normals = new Float32Array(n);
@@ -515,11 +569,27 @@ function initNormals(gl, cylinderProgram) {
     gl.enableVertexAttribArray(cylinderProgram.a_Normal);
 }
 
+/* initLightColor
+ * input:
+ * gl, cylinderProgram
+ * output:
+ * none
+ * use:
+ * initialize u_LightColor
+ */
 function initLightColor(gl, cylinderProgram) {
     gl.useProgram(cylinderProgram);
     gl.uniform3fv(cylinderProgram.u_LightColor, [1.0, 1.0, 1.0]); // white
 }
 
+/* initLightDirection
+ * input:
+ * gl, cylinderProgram
+ * output:
+ * none
+ * use:
+ * initialize u_LightDirection
+ */
 function initLightDirection(gl, cylinderProgram) {
     gl.useProgram(cylinderProgram);
     var lightDirection = new Vector3([1.0, 1.0, 1.0]);
@@ -527,6 +597,16 @@ function initLightDirection(gl, cylinderProgram) {
     gl.uniform3fv(cylinderProgram.u_LightDirection, lightDirection.elements);
 }
 
+/* initMatrix
+ * input:
+ * gl, cylinderProgram, lineProgram
+ * tag1: 0 to use cylinderProgram, 1 to use lineProgram
+ * tag2: 0 to set the top view, 1 for a side view
+ * output:
+ * none
+ * use:
+ * initialize u_MvpMatrix
+ */
 function initMatrix(gl, cylinderProgram, lineProgram, tag1, tag2) {
     if (tag1 == 0) { // Currently cylinderProgram in use
         gl.useProgram(cylinderProgram);
@@ -547,7 +627,7 @@ function initMatrix(gl, cylinderProgram, lineProgram, tag1, tag2) {
             gl.uniformMatrix4fv(cylinderProgram.u_MvpMatrix, false, mvpMatrix.elements);
         }
     }
-    else{
+    else {
         gl.useProgram(lineProgram);
         if (tag2 == 0) {
             // Set the eye point and the viewing volume
