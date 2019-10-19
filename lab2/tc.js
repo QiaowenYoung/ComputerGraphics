@@ -81,7 +81,7 @@ function main() {
     cylinderProgram.u_LightColor = gl.getUniformLocation(cylinderProgram, 'u_LightColor');
     cylinderProgram.u_LightDirection = gl.getUniformLocation(cylinderProgram, 'u_LightDirection');
     if (cylinderProgram.a_Position < 0 || cylinderProgram.a_Color < 0 || cylinderProgram.a_Normal < 0 ||
-        cylinderProgram.u_ViewMatrix < 0 || cylinderProgram.u_ProjMatrix < 0 || cylinderProgram.u_LightColor < 0 || 
+        cylinderProgram.u_ViewMatrix < 0 || cylinderProgram.u_ProjMatrix < 0 || cylinderProgram.u_LightColor < 0 ||
         cylinderProgram.u_LightDirection < 0) {
         console.log('Failed to locate variables for cylinder');
         return -1;
@@ -198,7 +198,7 @@ function setTopView(gl, cylinderProgram, lineProgram) {
         initLightColor(gl, cylinderProgram);
         initLightDirection(gl, cylinderProgram);
         initMatrix(gl, cylinderProgram, lineProgram, 0, 0); // The last but one parameter is to choose cylinderProgram.
-                                                            // The last parameter is to choose a top view.
+        // The last parameter is to choose a top view.
 
         // Specify the color for clearing <canvas>
         gl.clearColor(1.0, 1.0, 1.0, 1.0);
@@ -378,9 +378,9 @@ function setViewNormals() {
         shown.push(points[i + 1]);
         shown.push(points[i + 2]);
         // These 3 values are the ending point of the normal.
-        shown.push(n[i] / 2 + points[i]);
-        shown.push(n[i + 1] / 2 + points[i + 1]);
-        shown.push(n[i + 2] / 2 + points[i + 2]);
+        shown.push(n[i] / 4 + points[i]);
+        shown.push(n[i + 1] / 4 + points[i + 1]);
+        shown.push(n[i + 2] / 4 + points[i + 2]);
     }
 }
 
@@ -461,15 +461,15 @@ function generate_tc() {
         bottomy.push(bottom_y);
     }
     for (var i = 0; i < 12; i++) {
+        points.push(topx[i + 1]);
+        points.push(topy[i + 1]);
+        points.push(height);
         points.push(topx[i]);
         points.push(topy[i]);
         points.push(height);
         points.push(bottomx[i]);
         points.push(bottomy[i]);
         points.push(0.0);
-        points.push(topx[i + 1]);
-        points.push(topy[i + 1]);
-        points.push(height);
         points.push(topx[i + 1]);
         points.push(topy[i + 1]);
         points.push(height);
