@@ -557,6 +557,12 @@ function generate_point(x0, y0, z0, x1, y1, z1, level_now, l0, alpha, beta) {
     axis.push(-vec[1]);
     axis.push(vec[0]);
     axis.push(0);
+    var la = Math.sqrt(Math.pow(axis[0], 2) + Math.pow(axis[1], 2) + Math.pow(axis[2], 2));
+    if (la != 0) {
+        axis[0] /= la;
+        axis[1] /= la;
+        axis[2] /= la;
+    }
 
     // Now, I will rotate (x, y, z) by that axis
     // I need a rotational angle. It can be calculated by a dot product
