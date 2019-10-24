@@ -5,11 +5,12 @@ var VSHADER_SOURCE =
     'attribute vec3 a_Normal;\n' +        // Normal
     'uniform mat4 u_ViewMatrix;\n' +
     'uniform mat4 u_ProjMatrix;\n' +
+    'uniform vec4 u_Translation;\n' +
     'uniform vec3 u_LightColor;\n' +     // Light color
     'uniform vec3 u_LightDirection;\n' + // Light direction (in the world coordinate, normalized)
     'varying vec4 v_Color;\n' +
     'void main() {\n' +
-    '  gl_Position = u_ProjMatrix * u_ViewMatrix * a_Position;\n' +
+    '  gl_Position = u_ProjMatrix * u_ViewMatrix * a_Position + u_Translation;\n' +
     // Make the length of the normal 1.0
     '  vec3 normal = normalize(a_Normal);\n' +
     // Dot product of the light direction and the orientation of a surface (the normal)
@@ -36,6 +37,8 @@ var positionsl = [], positionsr = [];
 var ml = [], mr = [];
 var Txl = [], Tyl = [];
 var Txr = [], Tyr = [];
+var countl = 0;
+var countr = 0;
 function main() {
     // Retrieve <canvas> element
     var canvas = document.getElementById('webgl');
@@ -63,11 +66,12 @@ function main() {
     cylinderProgram.a_Normal = gl.getAttribLocation(cylinderProgram, 'a_Normal');
     cylinderProgram.u_ViewMatrix = gl.getUniformLocation(cylinderProgram, 'u_ViewMatrix');
     cylinderProgram.u_ProjMatrix = gl.getUniformLocation(cylinderProgram, 'u_ProjMatrix');
+    cylinderProgram.u_Translation = gl.getUniformLocation(cylinderProgram, 'u_Translation');
     cylinderProgram.u_LightColor = gl.getUniformLocation(cylinderProgram, 'u_LightColor');
     cylinderProgram.u_LightDirection = gl.getUniformLocation(cylinderProgram, 'u_LightDirection');
     if (cylinderProgram.a_Position < 0 || cylinderProgram.a_Color < 0 || cylinderProgram.a_Normal < 0 ||
-        cylinderProgram.u_ViewMatrix < 0 || cylinderProgram.u_ProjMatrix < 0 || cylinderProgram.u_LightColor < 0 ||
-        cylinderProgram.u_LightDirection < 0) {
+        cylinderProgram.u_ViewMatrix < 0 || cylinderProgram.u_ProjMatrix < 0 || cylinderProgram.u_Translation < 0 || 
+        cylinderProgram.u_LightColor < 0 || cylinderProgram.u_LightDirection < 0) {
         console.log('Failed to locate variables for cylinder');
         return -1;
     }
@@ -83,43 +87,83 @@ function main() {
     trees(2);
     positionsr = positionsr.concat(mr);
 
-    //canvas.onmousedown = function (ev) { click(ev, gl, canvas) };
-
     // Specify the color for clearing <canvas>
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
     gl.enable(gl.DEPTH_TEST);
     // Clear color and depth buffer
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    drawCylinder(gl, cylinderProgram);
+    canvas.onmousedown = function (ev) { click(ev, gl, canvas, cylinderProgram) };
 }
 
-//function click(ev, gl, canvas){
+function click(ev, gl, canvas, cylinderProgram){
+    var x = ev.clientX; // x coordinate of a mouse pointer
+    var y = ev.clientY; // y coordinate of a mouse pointer
+    var rect = ev.target.getBoundingClientRect();
 
-//}
+    x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
+    y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
 
-function drawCylinder(gl, cylinderProgram) {
+    if (ev.button === 0) {
+        countl++;
+        Txl.push(x); Tyl.push(y);
+    }
+    else if (ev.button === 2) {
+        countr++;
+        Txr.push(x); Tyr.push(y);
+    }
+    for(var i = 0; i < countl; i++){
+        drawCylinder(gl, cylinderProgram, Txl[i], Tyl[i], 0);
+    }
+    for(var i = 0; i < countr; i++){
+        drawCylinder(gl, cylinderProgram, Txr[i], Tyr[i], 1);
+    }
+
+}
+
+function drawCylinder(gl, cylinderProgram, tx, ty, tag) {
     gl.useProgram(cylinderProgram);
-
-    var l = positionsl.length;
-    //var l = treeR1.length;
-    for (var i = 0; i < l; i += 6) {
-        cylinder = [];
-        colors = [];
-        n = [];
-        branch(positionsl[i], positionsl[i + 1], positionsl[i + 2], positionsl[i + 3], positionsl[i + 4], positionsl[i + 5]);
-        //branch(treeR1[i], treeR1[i+1], treeR1[i+2], treeR1[i+3], treeR1[i+4], treeR1[i+5]);
-        setColors();
-        setNormals();
-        initPositions(gl, cylinderProgram);
-        initColors(gl, cylinderProgram);
-        initNormals(gl, cylinderProgram);
-        initLightColor(gl, cylinderProgram);
-        initLightDirection(gl, cylinderProgram);
-        initMatrix(gl, cylinderProgram);
-        // Display a default view
-        var len = cylinder.length / 3;
-        gl.drawArrays(gl.TRIANGLES, 0, len);
+    if (tag == 0) {
+        var l = positionsl.length;
+        for (var i = 0; i < l; i += 6) {
+            cylinder = [];
+            colors = [];
+            n = [];
+            branch(positionsl[i], positionsl[i + 1], positionsl[i + 2], positionsl[i + 3], positionsl[i + 4], positionsl[i + 5]);
+            setColors(0);
+            setNormals();
+            initPositions(gl, cylinderProgram);
+            initColors(gl, cylinderProgram);
+            initNormals(gl, cylinderProgram);
+            initLightColor(gl, cylinderProgram);
+            initLightDirection(gl, cylinderProgram);
+            initMatrix(gl, cylinderProgram);
+            initTranslation(gl, cylinderProgram, tx, ty);
+            // Display a default view
+            var len = cylinder.length / 3;
+            gl.drawArrays(gl.TRIANGLES, 0, len);
+        }
+    }
+    else{
+        var l = positionsr.length;
+        for (var i = 0; i < l; i += 6) {
+            cylinder = [];
+            colors = [];
+            n = [];
+            branch(positionsr[i], positionsr[i + 1], positionsr[i + 2], positionsr[i + 3], positionsr[i + 4], positionsr[i + 5]);
+            setColors(1);
+            setNormals();
+            initPositions(gl, cylinderProgram);
+            initColors(gl, cylinderProgram);
+            initNormals(gl, cylinderProgram);
+            initLightColor(gl, cylinderProgram);
+            initLightDirection(gl, cylinderProgram);
+            initMatrix(gl, cylinderProgram);
+            initTranslation(gl, cylinderProgram, tx, ty);
+            // Display a default view
+            var len = cylinder.length / 3;
+            gl.drawArrays(gl.TRIANGLES, 0, len);
+        }
     }
 }
 
@@ -147,13 +191,23 @@ function setNormals() {
     }
 }
 
-function setColors() {
+function setColors(tag) {
     var len = cylinder.length / 3;
-    for (var i = 0; i < len; i++) {
-        colors.push(1.0);
-        colors.push(0.0);
-        colors.push(0.0);
-        colors.push(1.0);
+    if (tag == 0) {
+        for (var i = 0; i < len; i++) {
+            colors.push(1.0);
+            colors.push(0.0);
+            colors.push(0.0);
+            colors.push(1.0);
+        }
+    }
+    if (tag == 1) {
+        for (var i = 0; i < len; i++) {
+            colors.push(0.0);
+            colors.push(0.0);
+            colors.push(1.0);
+            colors.push(1.0);
+        }
     }
 }
 
@@ -278,6 +332,16 @@ function initMatrix(gl, cylinderProgram) {
     projMatrix.setOrtho(-100, 100, -100, 100, -2000, 2000);
     // Pass the projection matrix to u_ProjMatrix
     gl.uniformMatrix4fv(cylinderProgram.u_ProjMatrix, false, projMatrix.elements);
+}
+
+/* initTranslation
+ * input:
+ * gl, cylinderProgram
+ * (tx, ty): coordinates of your mouse click
+ */
+function initTranslation(gl, cylinderProgram, tx, ty){
+    gl.useProgram(cylinderProgram);
+    gl.uniform4f(cylinderProgram.u_Translation, tx, ty, 0.0, 0.0);
 }
 
 /* branch
