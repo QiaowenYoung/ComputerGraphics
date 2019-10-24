@@ -102,11 +102,13 @@ function drawCylinder(gl, cylinderProgram) {
     gl.useProgram(cylinderProgram);
 
     var l = positionsl.length;
+    //var l = treeR1.length;
     for (var i = 0; i < l; i += 6) {
         cylinder = [];
         colors = [];
         n = [];
         branch(positionsl[i], positionsl[i + 1], positionsl[i + 2], positionsl[i + 3], positionsl[i + 4], positionsl[i + 5]);
+        //branch(treeR1[i], treeR1[i+1], treeR1[i+2], treeR1[i+3], treeR1[i+4], treeR1[i+5]);
         setColors();
         setNormals();
         initPositions(gl, cylinderProgram);
@@ -268,7 +270,7 @@ function initLightDirection(gl, cylinderProgram) {
 function initMatrix(gl, cylinderProgram) {
     gl.useProgram(cylinderProgram);
     var viewMatrix = new Matrix4();
-    viewMatrix.setLookAt(0, 0, 200, 0, 0, 0, 0, 1, 0);
+    viewMatrix.setLookAt(200, 200, 0, 0, 0, 0, 0, 0, 1);
     // Set the view matrix
     gl.uniformMatrix4fv(cylinderProgram.u_ViewMatrix, false, viewMatrix.elements);
     // Create the matrix to set the eye point, and the line of sight
@@ -346,6 +348,13 @@ function branch(x0, y0, z0, x1, y1, z1) {
     axis.push(-vec[1]);
     axis.push(vec[0]);
     axis.push(0);
+    var la = Math.sqrt(Math.pow(axis[0], 2) + Math.pow(axis[1], 2) + Math.pow(axis[2], 2));
+    if (la != 0) {
+        axis[0] /= la;
+        axis[1] /= la;
+        axis[2] /= la;
+    }
+
     var r_angle = Math.acos(0 * vec[0] + 0 * vec[1] + 1 * vec[2]);
     var m00 = Math.pow(axis[0], 2) * (1 - Math.cos(r_angle)) + Math.cos(r_angle);
     var m01 = axis[0] * axis[1] * (1 - Math.cos(r_angle)) - axis[2] * Math.sin(r_angle);
@@ -379,7 +388,7 @@ function trees(n) {
         generate_tree(0, 0, 0, 0, 0, 50, 3, 4, 50, 1);
     }
     else {
-        //generate_tree(0, 0, 0, 0, 0, 40, 5, 6, 40, 2);
+        generate_tree(0, 0, 0, 0, 0, 40, 5, 6, 40, 2);
     }
 }
 
@@ -493,6 +502,13 @@ function generate_point(x0, y0, z0, x1, y1, z1, level_now, l0, alpha, beta) {
     axis.push(-vec[1]);
     axis.push(vec[0]);
     axis.push(0);
+
+    var la = Math.sqrt(Math.pow(axis[0], 2) + Math.pow(axis[1], 2) + Math.pow(axis[2], 2));
+    if (la != 0) {
+        axis[0] /= la;
+        axis[1] /= la;
+        axis[2] /= la;
+    }
 
     // Now, I will rotate (x, y, z) by that axis
     // I need a rotational angle. It can be calculated by a dot product
