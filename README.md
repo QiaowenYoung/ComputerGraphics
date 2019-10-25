@@ -5,3 +5,4 @@ Try my assignments online:<br>
 * [Lab1](https://qiaowenyoung.github.io/ComputerGraphics/lab1/features.html)<br>
 * [Prog1](https://qiaowenyoung.github.io/ComputerGraphics/prog1/features.html)<br>
 * [Lab2](https://qiaowenyoung.github.io/ComputerGraphics/lab2/features.html)<br>
+* [Prog2](https://qiaowenyoung.github.io/ComputerGraphics/prog2/features.html)<br>
