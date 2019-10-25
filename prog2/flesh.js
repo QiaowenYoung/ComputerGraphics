@@ -114,6 +114,14 @@ function main() {
     });
 }
 
+function save(){
+
+}
+
+function load(){
+    
+}
+
 function setView(gl, cylinderProgram) {
     // Specify the color for clearing <canvas>
     gl.clearColor(1.0, 1.0, 1.0, 1.0);

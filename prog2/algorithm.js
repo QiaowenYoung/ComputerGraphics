@@ -1,11 +1,15 @@
-var cylinderl = [], cylinderr = [];
+var cylinderl = [], cylinderr = []; // cylinderl stores a tree created by a left click; cylinderr the right one
 var nl = [], nr = [];
 var positionsl = [], positionsr = [];
-var ml = [], mr = [];
+var ml = [], mr = []; // see in function generate_point
 
-// After the following steps, positionsl and positionsr will store all the coordinates
-// needed for a left click tree and a right click tree
 function main() {
+    /* These codes will store all the coordinates needed for a red tree in the array "positionsl", 
+     * and the coordinates for a blue tree in the array "positionsr".
+     * These trees are all wireframes, namely what we were required to created in prog1.
+     * Later I will use them to locate where each cylinder should be and how to scale all the cylinders.
+     * I didn't use TA's treeR4 and treeR6, because I'm more familiar with the structure of my own trees:-)
+     */
     positionsl.push(0); positionsl.push(0); positionsl.push(0);
     positionsl.push(0); positionsl.push(0); positionsl.push(50);
     trees(1);
@@ -14,7 +18,14 @@ function main() {
     positionsr.push(0); positionsr.push(0); positionsr.push(40);
     trees(2);
     positionsr = positionsr.concat(mr);
+    /* end */
 
+    /* For each wireframe tree, I will need to get every 6 elements to form a branch.
+     * Because every point has 3 coordinates, and every line has two points.
+     * For each branch, I calculate all the points that surround it and form the cylinder,
+     * and store them into the array "cylinderl" or "cylinderr".
+     * This is done by function branch(x0, y0, z0, x1, y1, z1).
+     */
     var l1 = positionsl.length;
     var l2 = positionsr.length;
     for (var i = 0; i < l1; i += 6) {
@@ -25,10 +36,20 @@ function main() {
         var array = branch(positionsr[i], positionsr[i + 1], positionsr[i + 2], positionsr[i + 3], positionsr[i + 4], positionsr[i + 5]);
         cylinderr = cylinderr.concat(array);
     }
+    /* end */
 
+    // Calculate normals for both left-click tree and right-click tree
     setNormals();
 }
 
+/* setNormals
+ *
+ * Thoughts:
+ * I get every 3 points' coordinates, and in a CCW mark them as a, b, c.
+ * Then, I calculate ba and bc, and do the cross product so I can get the normal for this plane.
+ * In this way, I get all the coordinates for a left-click tree's normals and store them into the array "nl".
+ * The right-click tree's normals are stored into "nr".
+ */
 function setNormals() {
     var l1 = cylinderl.length;
     for (var i = 0; i < l1; i += 9) {
@@ -80,7 +101,7 @@ function setNormals() {
  * (x0, y0, z0): starting point of this branch
  * (x1, y1, z1): ending point of this branch
  * output:
- * none
+ * an array that stores all the coordinates needed for rendering a branch
  * use:
  * store every cylinder's points' coordinates into an array
  * For every branch, the starting point will be the center of the bottom of a tapered cylinder.
@@ -144,6 +165,7 @@ function branch(x0, y0, z0, x1, y1, z1) {
     axis.push(-vec[1]);
     axis.push(vec[0]);
     axis.push(0);
+    // normalize vec
     var la = Math.sqrt(Math.pow(axis[0], 2) + Math.pow(axis[1], 2) + Math.pow(axis[2], 2));
     if (la != 0) {
         axis[0] /= la;
@@ -152,6 +174,8 @@ function branch(x0, y0, z0, x1, y1, z1) {
     }
 
     var r_angle = Math.acos(0 * vec[0] + 0 * vec[1] + 1 * vec[2]);
+
+    // rotational matrix
     var m00 = Math.pow(axis[0], 2) * (1 - Math.cos(r_angle)) + Math.cos(r_angle);
     var m01 = axis[0] * axis[1] * (1 - Math.cos(r_angle)) - axis[2] * Math.sin(r_angle);
     var m02 = axis[0] * axis[2] * (1 - Math.cos(r_angle)) + axis[1] * Math.sin(r_angle);
@@ -167,6 +191,7 @@ function branch(x0, y0, z0, x1, y1, z1) {
         var x = points[i];
         var y = points[i + 1];
         var z = points[i + 2];
+        // do rotation and translation
         array.push(m00 * x + m01 * y + m02 * z + x0);
         array.push(m10 * x + m11 * y + m12 * z + y0);
         array.push(m20 * x + m21 * y + m22 * z + z0);
@@ -178,7 +203,10 @@ function branch(x0, y0, z0, x1, y1, z1) {
  * input:
  * n: 1 for a red tree, other for a blue tree
  * output:
- * an array that stores all the points' coordinates
+ * none
+ * use:
+ * fills the array positionsl/positionsr with all the points' coordinates 
+ * for a left-click/right-click wireframe tree
  */
 function trees(n) {
     if (n === 1) {
@@ -195,7 +223,7 @@ function trees(n) {
  * (x1, y1, z1): curent node
  * level_now: current recursion level, from 0 to either 4 or 6
  * level: either 4 or 6
- * l0: either 0.5 or 0.4
+ * l0: either 50 or 40
  * tag: 1 to represent a red tree, 2 for a blue one
  * output: a tree generated and located at (0, 0)
  * 
