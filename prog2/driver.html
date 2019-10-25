@@ -1,18 +1,107 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>flesh</title>
     <style>
-    canvas {
-        border: 1px solid black;
-        background-color: white;
-    }
+        #text1 {
+            color: steelblue;
+            font-family: 'Times New Roman', Times, serif;
+        }
+
+        canvas {
+            border: 1px solid black;
+            background-color: white;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 105%;
+            margin: 10;
+            background-image: linear-gradient(to top, lightblue, white);
+        }
+
+        a:link {
+            font-family: 'Times New Roman', Times, serif;
+            text-decoration: none;
+            color: steelblue
+        }
+
+        a:active {
+            font-family: 'Times New Roman', Times, serif;
+            text-decoration: blink
+        }
+
+        a:hover {
+            font-family: 'Times New Roman', Times, serif;
+            text-decoration: underline;
+            color: lightcoral
+        }
+
+        a:visited {
+            font-family: 'Times New Roman', Times, serif;
+            text-decoration: none;
+            color: darkturquoise
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            -webkit-transition: .4s;
+            transition: .4s;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            -webkit-transition: .4s;
+            transition: .4s;
+        }
+
+        input:checked+.slider {
+            background-color: #2196F3;
+        }
+
+        input:focus+.slider {
+            box-shadow: 0 0 1px #2196F3;
+        }
+
+        input:checked+.slider:before {
+            -webkit-transform: translateX(26px);
+            -ms-transform: translateX(26px);
+            transform: translateX(26px);
+        }
     </style>
 </head>
-<body onload = "main()">
+
+<body onload="main()">
     <canvas id="webgl" width="600" height="600"></canvas>
     <script src="flesh.js"></script>
     <script src="points.js"></script>
@@ -20,6 +109,20 @@
     <script src="../lib/cuon-utils.js"></script>
     <script src="../lib/webgl-debug.js"></script>
     <script src="../lib/webgl-utils.js"></script>
-    
+    <div id="text1">
+        <h3>Top view <label class="switch">
+                <input type="checkbox" id="toggle1">
+                <span class="slider"></span>
+            </label> Side view</h3>
+        <h3>Ortho View <label class="switch">
+                <input type="checkbox" id="toggle2">
+                <span class="slider"></span>
+            </label> Pers View</h3>
+        <h3>Solid <label class="switch">
+                <input type="checkbox" id="toggle3">
+                <span class="slider"></span>
+            </label> Wireframe</h3>
+    </div>
 </body>
+
 </html>

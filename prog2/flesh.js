@@ -3,16 +3,14 @@ var VSHADER_SOURCE =
     'attribute vec4 a_Position;\n' +
     'attribute vec4 a_Color;\n' +
     'attribute vec3 a_Normal;\n' +        // Normal
-    'uniform mat4 u_ViewMatrix;\n' +
-    'uniform mat4 u_ProjMatrix;\n' +
+    'uniform mat4 u_mvpMatrix;\n' +
     'uniform vec4 u_Translation;\n' +
     'uniform vec3 u_LightColor;\n' +     // Light color
     'uniform vec3 u_LightDirection;\n' + // Light direction (in the world coordinate, normalized)
     'varying vec4 v_Color;\n' +
     'void main() {\n' +
-    '  gl_Position = u_ProjMatrix * u_ViewMatrix * a_Position + u_Translation;\n' +
+    '  gl_Position = u_mvpMatrix * a_Position + u_Translation;\n' +
     // Make the length of the normal 1.0
-    //'  vec3 normal = normalize(a_Normal + u_Translation.xyz);\n' +
     '  vec3 normal = normalize(a_Normal);\n' +
     // Dot product of the light direction and the orientation of a surface (the normal)
     '  float nDotL = max(dot(u_LightDirection, normal), 0.0);\n' +
@@ -35,6 +33,7 @@ var Txl = [], Tyl = [];
 var Txr = [], Tyr = [];
 var countl = 0;
 var countr = 0;
+var toggle1 = 0, toggle2 = 0, toggle3 = 0;
 function main() {
     // Retrieve <canvas> element
     var canvas = document.getElementById('webgl');
@@ -60,8 +59,7 @@ function main() {
     cylinderProgram.a_Position = gl.getAttribLocation(cylinderProgram, 'a_Position');
     cylinderProgram.a_Color = gl.getAttribLocation(cylinderProgram, 'a_Color');
     cylinderProgram.a_Normal = gl.getAttribLocation(cylinderProgram, 'a_Normal');
-    cylinderProgram.u_ViewMatrix = gl.getUniformLocation(cylinderProgram, 'u_ViewMatrix');
-    cylinderProgram.u_ProjMatrix = gl.getUniformLocation(cylinderProgram, 'u_ProjMatrix');
+    cylinderProgram.u_mvpMatrix = gl.getUniformLocation(cylinderProgram, 'u_mvpMatrix');
     cylinderProgram.u_Translation = gl.getUniformLocation(cylinderProgram, 'u_Translation');
     cylinderProgram.u_LightColor = gl.getUniformLocation(cylinderProgram, 'u_LightColor');
     cylinderProgram.u_LightDirection = gl.getUniformLocation(cylinderProgram, 'u_LightDirection');
@@ -79,6 +77,81 @@ function main() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     canvas.onmousedown = function (ev) { click(ev, gl, canvas, cylinderProgram) };
+
+    var checkbox1 = document.getElementById('toggle1');
+    checkbox1.addEventListener('change', function () {
+        if (checkbox1.checked) {
+            toggle1 = 1;
+            setView(gl, cylinderProgram);
+            //setSideView(gl, cylinderProgram);
+        } else {
+            toggle1 = 0;
+            setView(gl, cylinderProgram);
+            //setTopView(gl, cylinderProgram);
+        }
+    });
+
+    var checkbox2 = document.getElementById('toggle2');
+    checkbox2.addEventListener('change', function () {
+        if (checkbox2.checked) {
+            toggle2 = 1;
+            setView(gl, cylinderProgram);
+        } else {
+            toggle2 = 0;
+            setView(gl, cylinderProgram);
+        }
+    });
+
+    var checkbox3 = document.getElementById('toggle3');
+    checkbox3.addEventListener('change', function () {
+        if (checkbox3.checked) {
+            toggle3 = 1;
+            setView(gl, cylinderProgram);
+        } else {
+            toggle3 = 0;
+            setView(gl, cylinderProgram);
+        }
+    });
+}
+
+function setView(gl, cylinderProgram) {
+    // Specify the color for clearing <canvas>
+    gl.clearColor(1.0, 1.0, 1.0, 1.0);
+    gl.enable(gl.DEPTH_TEST);
+    // Clear color and depth buffer
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    for (var i = 0; i < countl; i++) {
+        initPositions(gl, cylinderProgram, 0);
+        initColors(gl, cylinderProgram, 0);
+        initNormals(gl, cylinderProgram, 0);
+        initLightColor(gl, cylinderProgram);
+        initLightDirection(gl, cylinderProgram);
+        initMatrix(gl, cylinderProgram, toggle1, toggle2);
+        initTranslation(gl, cylinderProgram, Txl[i], Tyl[i], toggle2);
+        var len = cylinderl.length / 3;
+        if (toggle3 == 0) {
+            gl.drawArrays(gl.TRIANGLES, 0, len);
+        }
+        else {
+            gl.drawArrays(gl.LINES, 0, len);
+        }
+    }
+    for (var i = 0; i < countr; i++) {
+        initPositions(gl, cylinderProgram, 1);
+        initColors(gl, cylinderProgram, 1);
+        initNormals(gl, cylinderProgram, 1);
+        initLightColor(gl, cylinderProgram);
+        initLightDirection(gl, cylinderProgram);
+        initMatrix(gl, cylinderProgram, toggle1, toggle2);
+        initTranslation(gl, cylinderProgram, Txr[i], Tyr[i], toggle2);
+        var len = cylinderr.length / 3;
+        if (toggle3 == 0) {
+            gl.drawArrays(gl.TRIANGLES, 0, len);
+        }
+        else {
+            gl.drawArrays(gl.LINES, 0, len);
+        }
+    }
 }
 
 function click(ev, gl, canvas, cylinderProgram) {
@@ -97,38 +170,7 @@ function click(ev, gl, canvas, cylinderProgram) {
         countr++;
         Txr.push(x); Tyr.push(y);
     }
-    for (var i = 0; i < countl; i++) {
-        drawCylinder(gl, cylinderProgram, Txl[i], Tyl[i], 0);
-    }
-    for (var i = 0; i < countr; i++) {
-        drawCylinder(gl, cylinderProgram, Txr[i], Tyr[i], 1);
-    }
-}
-
-function drawCylinder(gl, cylinderProgram, tx, ty, tag) {
-    gl.useProgram(cylinderProgram);
-    if (tag == 0) {
-        initPositions(gl, cylinderProgram, 0);
-        initColors(gl, cylinderProgram, 0);
-        initNormals(gl, cylinderProgram, 0);
-        initLightColor(gl, cylinderProgram);
-        initLightDirection(gl, cylinderProgram);
-        initMatrix(gl, cylinderProgram);
-        initTranslation(gl, cylinderProgram, tx, ty);
-        var len = cylinderl.length / 3;
-        gl.drawArrays(gl.TRIANGLES, 0, len);
-    }
-    else {
-        initPositions(gl, cylinderProgram, 1);
-        initColors(gl, cylinderProgram, 1);
-        initNormals(gl, cylinderProgram, 1);
-        initLightColor(gl, cylinderProgram);
-        initLightDirection(gl, cylinderProgram);
-        initMatrix(gl, cylinderProgram);
-        initTranslation(gl, cylinderProgram, tx, ty);
-        var len = cylinderr.length / 3;
-        gl.drawArrays(gl.TRIANGLES, 0, len);
-    }
+    setView(gl, cylinderProgram);
 }
 
 /* initPositions
@@ -269,17 +311,33 @@ function initLightDirection(gl, cylinderProgram) {
  * use:
  * initialize u_ViewMatrx and u_ProjMatrix
  */
-function initMatrix(gl, cylinderProgram) {
+function initMatrix(gl, cylinderProgram, tag1, tag2) {
     gl.useProgram(cylinderProgram);
-    var viewMatrix = new Matrix4();
-    viewMatrix.setLookAt(0, 0, 200, 0, 0, 0, 0, 1, 0);
-    // Set the view matrix
-    gl.uniformMatrix4fv(cylinderProgram.u_ViewMatrix, false, viewMatrix.elements);
-    // Create the matrix to set the eye point, and the line of sight
-    var projMatrix = new Matrix4();
-    projMatrix.setOrtho(-100, 100, -100, 100, -2000, 2000);
-    // Pass the projection matrix to u_ProjMatrix
-    gl.uniformMatrix4fv(cylinderProgram.u_ProjMatrix, false, projMatrix.elements);
+    var mvpMatrix = new Matrix4();
+    if (tag1 == 0) { // Top view
+        if (tag2 == 0) { //Ortho
+            mvpMatrix.setOrtho(-200, 200, -200, 200, -1000, 1000);
+            mvpMatrix.lookAt(0, 0, 200, 0, 0, 0, 0, 1, 0);
+            gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
+        }
+        else {
+            mvpMatrix.setPerspective(90, 1, 100, 1000);
+            mvpMatrix.lookAt(0, 0, 200, 0, 0, 0, 0, 1, 0);
+            gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
+        }
+    }
+    else { // Side
+        if (tag2 == 0) { //Ortho
+            mvpMatrix.setOrtho(-200, 200, -200, 200, -1000, 1000);
+            mvpMatrix.lookAt(0, -200, 75, 0, 0, 0, 0, 1, 0);
+            gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
+        }
+        else {
+            mvpMatrix.setPerspective(90, 1, 100, 1000);
+            mvpMatrix.lookAt(0, -200, 75, 0, 0, 0, 0, 1, 0);
+            gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
+        }
+    }
 }
 
 /* initTranslation
@@ -287,7 +345,12 @@ function initMatrix(gl, cylinderProgram) {
  * gl, cylinderProgram
  * (tx, ty): coordinates of your mouse click
  */
-function initTranslation(gl, cylinderProgram, tx, ty) {
+function initTranslation(gl, cylinderProgram, tx, ty, toggle) {
     gl.useProgram(cylinderProgram);
-    gl.uniform4f(cylinderProgram.u_Translation, tx, ty, 0.0, 0.0);
+    if (toggle == 0) {
+        gl.uniform4f(cylinderProgram.u_Translation, tx, ty, 0.0, 0.0);
+    }
+    else {
+        gl.uniform4f(cylinderProgram.u_Translation, 200 * tx, 200 * ty, 0.0, 0.0);
+    }
 }
