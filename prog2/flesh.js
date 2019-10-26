@@ -112,6 +112,11 @@ function main() {
             setView(gl, cylinderProgram);
         }
     });
+
+    var submit = document.getElementById('submit');
+    submit.addEventListener('click', function () {
+        setView(gl, cylinderProgram);
+    });
 }
 
 // Save: refer to https://jsfiddle.net/4v26ebtp/
@@ -144,9 +149,45 @@ function save() {
     exportRaw('test.txt', JSON.stringify(arr));
 }
 
-
+// Load: refer to https://blog.csdn.net/zdavb/article/details/50266215 on import files
 function load() {
+    var selectedFile = document.getElementById("files").files[0];
+    var name = selectedFile.name;
+    var size = selectedFile.size;
+    console.log("filename: " + name + "size: " + size);
 
+    var reader = new FileReader();
+    reader.readAsText(selectedFile);
+
+    reader.onload = function () {
+        var l = this.result.length;
+        var str = this.result.slice(1, l - 1);
+        var arr = str.split(',');
+        for (var i = 0; i < arr.length; i++) {
+            arr[i] = parseFloat(arr[i]);
+        }
+        toggle1 = arr[0];
+        toggle2 = arr[1];
+        toggle3 = arr[2];
+        countl = arr[3];
+        var txl = arr.slice(4, countl + 4);
+        var tyl = arr.slice(countl + 4, 2 * countl + 4);
+        countr = arr[2 * countl + 4];
+        var txr = arr.slice(2 * countl + 5, 2 * countl + 5 + countr);
+        var tyr = arr.slice(2 * countl + 5 + countr, 2 * countl + 5 + 2 * countr);
+        Txl = [];
+        Tyl = [];
+        Txr = [];
+        Tyr = [];
+        for(var i=0;i<countl;i++){
+            Txl.push(txl[i]);
+            Tyl.push(tyl[i]);
+        }
+        for(var i=0;i<countr;i++){
+            Txr.push(txr[i]);
+            Tyr.push(tyr[i]);
+        }
+    };
 }
 
 function setView(gl, cylinderProgram) {

@@ -20,7 +20,7 @@
         html,
         body {
             width: 100%;
-            height: 105%;
+            height: 100%;
             margin: 10;
             background-image: linear-gradient(to top, lightblue, white);
         }
@@ -136,10 +136,11 @@
             </label> Wireframe
         </p>
     </div>
-    <input type="button" onclick="save()" value="Save">
-    <input type="button" onclick="load()" value="Load"><br><br>
-    <a href="features.html">Homepage<br><br></a>
-    <a href="guide.html">User-guide and features</a>
+    <input type="button" onclick="save()" value="save">
+    <input type="file" id="files" name="myFile" onchange="load()">
+    <input type="button" id="submit" value="submit"><br><br>
+    <a href="features.html">Homepage </a>
+    <a href="guide.html"> User-guide and features</a>
 </body>
 
 </html>
