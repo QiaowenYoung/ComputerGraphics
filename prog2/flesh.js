@@ -29,10 +29,13 @@ var FSHADER_SOURCE =
     '  gl_FragColor = v_Color;\n' +
     '}\n';
 
-var Txl = [], Tyl = [];
-var Txr = [], Tyr = [];
-var countl = 0;
-var countr = 0;
+var Txl = [], Tyl = []; // (x, y) coordinates of a left click
+var Txr = [], Tyr = []; // (x, y) coordinates of a right click
+var countl = 0; // # of red trees
+var countr = 0; // # of blue trees
+// toggle1: 0 for top view, 1 for side view
+// toggle2: 0 for ortho view, 1 for pers view
+// toggle3: 0 for solid, 1 for wireframe
 var toggle1 = 0, toggle2 = 0, toggle3 = 0;
 function main() {
     // Retrieve <canvas> element
@@ -83,11 +86,9 @@ function main() {
         if (checkbox1.checked) {
             toggle1 = 1;
             setView(gl, cylinderProgram);
-            //setSideView(gl, cylinderProgram);
         } else {
             toggle1 = 0;
             setView(gl, cylinderProgram);
-            //setTopView(gl, cylinderProgram);
         }
     });
 
@@ -116,10 +117,33 @@ function main() {
     var submit = document.getElementById('submit');
     submit.addEventListener('click', function () {
         setView(gl, cylinderProgram);
+        // Change checkbox value based on the import
+        if(toggle1 == 0){
+            checkbox1.checked = false;
+        }else{
+            checkbox1.checked = true;
+        }
+        if(toggle2 == 0){
+            checkbox2.checked = false;
+        }else{
+            checkbox2.checked = true;
+        }
+        if(toggle3 == 0){
+            checkbox3.checked = false;
+        }else{
+            checkbox3.checked = true;
+        }
     });
 }
 
-// Save: refer to https://jsfiddle.net/4v26ebtp/
+/* save: refer to https://jsfiddle.net/4v26ebtp/
+ * 
+ * The basic thought is to store toggle1, toggle2, toggle3, Txl, Tyl, Txr, Tyr, countl, countr 
+ * (can refer to line 32~39 for what these values mean) to test.txt.
+ * For parsing convenience, the sequence of these values is set as:
+ * toggle1, toggle2, toggle3, countl, Txl, Tyl, countr, Txr, Tyr.
+ * In this way, when loading a scene, these values can be easily parsed and known.
+ */
 function fakeClick(obj) {
     var ev = document.createEvent("MouseEvents");
     ev.initMouseEvent("click", true, false, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
@@ -190,13 +214,21 @@ function load() {
     };
 }
 
+/* setView
+ * input:
+ * gl, cylinderProgram
+ * output:
+ * none
+ * use:
+ * draw a whole scene
+ */
 function setView(gl, cylinderProgram) {
     // Specify the color for clearing <canvas>
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
     gl.enable(gl.DEPTH_TEST);
     // Clear color and depth buffer
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    for (var i = 0; i < countl; i++) {
+    for (var i = 0; i < countl; i++) { // Draw red trees
         initPositions(gl, cylinderProgram, 0);
         initColors(gl, cylinderProgram, 0);
         initNormals(gl, cylinderProgram, 0);
@@ -205,14 +237,14 @@ function setView(gl, cylinderProgram) {
         initMatrix(gl, cylinderProgram, toggle1, toggle2);
         initTranslation(gl, cylinderProgram, Txl[i], Tyl[i], toggle2);
         var len = cylinderl.length / 3;
-        if (toggle3 == 0) {
+        if (toggle3 == 0) { // Flat shading
             gl.drawArrays(gl.TRIANGLES, 0, len);
         }
-        else {
+        else { // wireframe
             gl.drawArrays(gl.LINES, 0, len);
         }
     }
-    for (var i = 0; i < countr; i++) {
+    for (var i = 0; i < countr; i++) { // Draw blue trees
         initPositions(gl, cylinderProgram, 1);
         initColors(gl, cylinderProgram, 1);
         initNormals(gl, cylinderProgram, 1);
@@ -251,7 +283,8 @@ function click(ev, gl, canvas, cylinderProgram) {
 
 /* initPositions
  * input:
- * gl and cylinderProgram
+ * gl, cylinderProgram
+ * tag: 0 for left click, 1 for right click
  * output:
  * none
  * use:
@@ -292,6 +325,7 @@ function initPositions(gl, cylinderProgram, tag) {
 /* initColors
  * input:
  * gl, cylinderProgram
+ * tag: 0 for red tree, 1 for blue tree
  * output:
  * none
  * use:
@@ -310,6 +344,7 @@ function initColors(gl, cylinderProgram, tag) {
 /* initNormals
  * input:
  * gl, cylinderProgram
+ * tag: 0 for red tree, 1 for blue tree
  * output:
  * none
  * use:
@@ -382,10 +417,12 @@ function initLightDirection(gl, cylinderProgram) {
 /* initMatrix
  * input:
  * gl, cylinderProgram
+ * tag1: 0 for top view, 1 for side view
+ * tag2: 0 for ortho view, 1 for pers view
  * output:
  * none
  * use:
- * initialize u_ViewMatrx and u_ProjMatrix
+ * initialize u_mvpMatrix
  */
 function initMatrix(gl, cylinderProgram, tag1, tag2) {
     gl.useProgram(cylinderProgram);
@@ -420,10 +457,15 @@ function initMatrix(gl, cylinderProgram, tag1, tag2) {
  * input:
  * gl, cylinderProgram
  * (tx, ty): coordinates of your mouse click
+ * tag: 0 for ortho view, 1 for pers view
+ * 
+ * The tag here is to distinguish between ortho and pers view, for I find the (tx, ty) needed for them are different.
+ * I am confused, though, for I think for both views I should multiply the (tx, ty) by a scaling const, like 200.
+ * But the canvas shows that for ortho I do not need to do this. idk why:-)
  */
-function initTranslation(gl, cylinderProgram, tx, ty, toggle) {
+function initTranslation(gl, cylinderProgram, tx, ty, tag) {
     gl.useProgram(cylinderProgram);
-    if (toggle == 0) {
+    if (tag == 0) {
         gl.uniform4f(cylinderProgram.u_Translation, tx, ty, 0.0, 0.0);
     }
     else {
