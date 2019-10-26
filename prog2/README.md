@@ -1,6 +1,7 @@
 Notes
 =====
-* How to draw a whole tree<br>
+How to draw a whole tree
+-------------------------
 Just transform one cylinder from (0, 0) to where it should be, and scale it properly. 
 The difficulty is the speed for calculation. When it is for one tree, the delay in loading a webpage is hard to feel. 
 But for multiple trees, it costs too much time to draw a tree. 
