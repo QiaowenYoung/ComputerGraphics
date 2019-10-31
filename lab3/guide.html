@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Features</title>
+    <style>
+        #text1 {
+            padding-left: 80px;
+            padding-right: 700px;
+            padding-top: 100px;
+            color: steelblue;
+            font-family: 'Times New Roman', Times, serif;
+        }
+
+        img {
+            position: absolute;
+            right: 80px;
+            top: 250px;
+            box-shadow: 2px 2px 5px steelblue;
+            border-radius: 0% 10% 0% 10% / 0% 20% 0% 20%;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+        }
+
+        body {
+            background-image: linear-gradient(to top, lightblue, white);
+        }
+
+        a:link {
+            text-decoration: none;
+            color: steelblue
+        }
+
+        a:active {
+            text-decoration: blink
+        }
+
+        a:hover {
+            text-decoration: underline;
+            color: lightcoral
+        }
+
+        a:visited {
+            text-decoration: none;
+            color: darkturquoise
+        }
+    </style>
+</head>
+
+<body>
+    <div id=text1>
+        <h1>User-guide and features</h1>
+        <h3>Features</h3>
+        <p>The canvas is 600x600 in dimension.</p>
+        <p>Left click to draw a red tree with the recursion level 4 at the mouse click position. 
+            Right click to draw a blue tree with the recursion level 6 at the mouse click position. 
+            A red tree's trunk is 50 in length, blue the 40. Each branch' length is 1/2 of its father's.
+        </p>
+        <p>Click on the toggle below canvas to change view from top to side.
+            Click back and change the view back. The second toggle is to switch between orthographic view and perspective view. 
+            The third toggle is to switch between flat shading and wireframe.
+        </p>
+        <p>Click on the first button to save your current work to file. 
+            Click on the second button to load a scene from file. Then click "submit" to see your previous work. 
+            The awesome part is that you can save multiple scenes and load them later at your will!
+        </p>
+        <h3>Thoughts</h3>
+        <p>I calculate all the coordinates for a whole tree and it's normals and store them in the ./points.js, 
+            so that the web page can be immediately loaded without delay caused by calculation. 
+            There are 4 arrays in the ./points.js, namely cylinderl (the tree created by a left click), 
+            cylinderr (by a right click), nl (normals for a left click tree), nr (normals for a right one).
+            You may want to open the console and see their values.
+        </p>
+        <p>The algorithm for the calculation is in ./algorithm.js, 
+            basically transforming one cylinder to where it should be and save the coordinates in arrays. 
+            The file ./algorithm.js has detailed documentation for you to check.</p>
+        <a href="features.html">Homepage |</a>
+        <a href="driver.html">| My canvas</a>
+    </div>
+    <img src="screenshot2.png" width="500" height="280">
+</body>
+
+</html>
