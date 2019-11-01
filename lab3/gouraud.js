@@ -8,7 +8,13 @@ var VSHADER_SOURCE =
     'uniform vec3 u_LightColor;\n' +     // Light color
     'uniform vec3 u_LightDirection;\n' + // Light direction (in the world coordinate, normalized)
     'varying vec4 v_Color;\n' +
+    'varying vec3 v_vertPos;\n' + // View Direction
+    'uniform float u_shininessVal;\n' + // 20 or 5
+    //'uniform mat4 u_modelview;\n' +
     'void main() {\n' +
+    //'  vec4 v_vertPos4 = u_modelview * a_Position;\n' +
+    '  vec4 v_vertPos4 = u_mvpMatrix * a_Position;\n' +
+    '  v_vertPos = vec3(v_vertPos4) / v_vertPos4.w;\n' +
     '  gl_Position = u_mvpMatrix * a_Position + u_Translation;\n' +
     // Make the length of the normal 1.0
     '  vec3 normal = normalize(a_Normal);\n' +
@@ -16,7 +22,15 @@ var VSHADER_SOURCE =
     '  float nDotL = max(dot(u_LightDirection, normal), 0.0);\n' +
     // Calculate the color due to diffuse reflection
     '  vec3 diffuse = u_LightColor * a_Color.rgb * nDotL;\n' +
-    '  v_Color = vec4(diffuse, a_Color.a);\n' +
+    // Calculate specular
+    '  float specular = 0.0;\n' +
+    '  if(nDotL > 0.0) {\n' +
+    '    vec3 R = reflect(-u_LightDirection, normal);\n' +
+    '    vec3 V = normalize(-v_vertPos);\n' +
+    '    float specAngle = max(dot(R, V), 0.0);\n' +
+    '    specular = pow(specAngle, u_shininessVal);\n' +
+    '  }\n' +
+    '  v_Color = vec4(diffuse + vec3(1.0, 1.0, 1.0) * specular * vec3(1.0, 1.0, 1.0), a_Color.a);\n' +
     '}\n';
 
 // Fragment shader program
@@ -37,6 +51,7 @@ var countr = 0; // # of blue trees
 // toggle2: 0 for ortho view, 1 for pers view
 // toggle3: 0 for solid, 1 for wireframe
 var toggle1 = 0, toggle2 = 0, toggle3 = 0;
+//var modelview = new Float32Array(16);
 function main() {
     // Retrieve <canvas> element
     var canvas = document.getElementById('webgl');
@@ -66,9 +81,13 @@ function main() {
     cylinderProgram.u_Translation = gl.getUniformLocation(cylinderProgram, 'u_Translation');
     cylinderProgram.u_LightColor = gl.getUniformLocation(cylinderProgram, 'u_LightColor');
     cylinderProgram.u_LightDirection = gl.getUniformLocation(cylinderProgram, 'u_LightDirection');
+    cylinderProgram.u_shininessVal = gl.getUniformLocation(cylinderProgram, 'u_shininessVal');
+    cylinderProgram.u_modelview = gl.getUniformLocation(cylinderProgram, 'u_modelview');
+
     if (cylinderProgram.a_Position < 0 || cylinderProgram.a_Color < 0 || cylinderProgram.a_Normal < 0 ||
         cylinderProgram.u_ViewMatrix < 0 || cylinderProgram.u_ProjMatrix < 0 || cylinderProgram.u_Translation < 0 ||
-        cylinderProgram.u_LightColor < 0 || cylinderProgram.u_LightDirection < 0) {
+        cylinderProgram.u_LightColor < 0 || cylinderProgram.u_LightDirection < 0 || cylinderProgram.u_shininessVal < 0 ||
+        cylinderProgram.u_modelview < 0) {
         console.log('Failed to locate variables for cylinder');
         return -1;
     }
@@ -237,6 +256,7 @@ function setView(gl, cylinderProgram) {
         initLightDirection(gl, cylinderProgram);
         initMatrix(gl, cylinderProgram, toggle1, toggle2);
         initTranslation(gl, cylinderProgram, Txl[i], Tyl[i], toggle2);
+        initGloss(gl, cylinderProgram, 0);
         var len = cylinderl.length / 3;
         if (toggle3 == 0) { // Flat shading
             gl.drawArrays(gl.TRIANGLES, 0, len);
@@ -253,6 +273,7 @@ function setView(gl, cylinderProgram) {
         initLightDirection(gl, cylinderProgram);
         initMatrix(gl, cylinderProgram, toggle1, toggle2);
         initTranslation(gl, cylinderProgram, Txr[i], Tyr[i], toggle2);
+        initGloss(gl, cylinderProgram, 1);
         var len = cylinderr.length / 3;
         if (toggle3 == 0) {
             gl.drawArrays(gl.TRIANGLES, 0, len);
@@ -428,28 +449,37 @@ function initLightDirection(gl, cylinderProgram) {
 function initMatrix(gl, cylinderProgram, tag1, tag2) {
     gl.useProgram(cylinderProgram);
     var mvpMatrix = new Matrix4();
+    //var modelview = new Float32Array(16);
     if (tag1 == 0) { // Top view
         if (tag2 == 0) { //Ortho
-            mvpMatrix.setOrtho(-100, 100, -100, 100, -1000, 1000);
-            mvpMatrix.lookAt(0, 0, 100, 0, 0, 0, 0, 1, 0);
+            mvpMatrix.setOrtho(-200, 200, -200, 200, -1000, 1000);
+            mvpMatrix.lookAt(0, 0, 200, 0, 0, 0, 0, 1, 0);
+            //mat4LookAt(modelview, 0, 0, 200, 0, 0, 0, 0, 1, 0);
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
+            //gl.uniformMatrix4fv(cylinderProgram.u_modelview, false, modelview.elements);
         }
         else {
             mvpMatrix.setPerspective(90, 1, 100, 1000);
             mvpMatrix.lookAt(0, 0, 200, 0, 0, 0, 0, 1, 0);
+            //mat4LookAt(modelview, 0, 0, 200, 0, 0, 0, 0, 1, 0);
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
+            //gl.uniformMatrix4fv(cylinderProgram.u_modelview, false, modelview.elements);
         }
     }
     else { // Side
         if (tag2 == 0) { //Ortho
             mvpMatrix.setOrtho(-200, 200, -200, 200, -1000, 1000);
             mvpMatrix.lookAt(0, -200, 75, 0, 0, 0, 0, 1, 0);
+            //mat4LookAt(modelview, 0, -200, 75, 0, 0, 0, 0, 1, 0);
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
+            //gl.uniformMatrix4fv(cylinderProgram.u_modelview, false, modelview.elements);
         }
         else {
             mvpMatrix.setPerspective(90, 1, 100, 1000);
             mvpMatrix.lookAt(0, -200, 75, 0, 0, 0, 0, 1, 0);
+            //mat4LookAt(modelview, 0, -200, 75, 0, 0, 0, 0, 1, 0);
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
+            //gl.uniformMatrix4fv(cylinderProgram.u_modelview, false, modelview.elements);
         }
     }
 }
@@ -472,4 +502,70 @@ function initTranslation(gl, cylinderProgram, tx, ty, tag) {
     else {
         gl.uniform4f(cylinderProgram.u_Translation, 200 * tx, 200 * ty, 0.0, 0.0);
     }
+}
+
+function initGloss(gl, cylinderProgram, tag) {
+    gl.useProgram(cylinderProgram);
+    if (tag == 0) {
+        gl.uniform1f(cylinderProgram.u_shininessVal, 5.0);
+    }
+    else {
+        gl.uniform1f(cylinderProgram.u_shininessVal, 20.0);
+    }
+}
+
+function mat4LookAt(viewMatrix,
+    eyeX, eyeY, eyeZ,
+    centerX, centerY, centerZ,
+    upX, upY, upZ) {
+
+    var dir = new Float32Array(3);
+    var right = new Float32Array(3);
+    var up = new Float32Array(3);
+    var eye = new Float32Array(3);
+
+    up[0] = upX; up[1] = upY; up[2] = upZ;
+    eye[0] = eyeX; eye[1] = eyeY; eye[2] = eyeZ;
+
+    dir[0] = centerX - eyeX; dir[1] = centerY - eyeY; dir[2] = centerZ - eyeZ;
+    vec3Normalize(dir);
+    vec3Cross(dir, up, right);
+    vec3Normalize(right);
+    vec3Cross(right, dir, up);
+    vec3Normalize(up);
+    // first row
+    viewMatrix[0] = right[0];
+    viewMatrix[4] = right[1];
+    viewMatrix[8] = right[2];
+    viewMatrix[12] = -vec3Dot(right, eye);
+    // second row
+    viewMatrix[1] = up[0];
+    viewMatrix[5] = up[1];
+    viewMatrix[9] = up[2];
+    viewMatrix[13] = -vec3Dot(up, eye);
+    // third row
+    viewMatrix[2] = -dir[0];
+    viewMatrix[6] = -dir[1];
+    viewMatrix[10] = -dir[2];
+    viewMatrix[14] = vec3Dot(dir, eye);
+    // forth row
+    viewMatrix[3] = 0.0;
+    viewMatrix[7] = 0.0;
+    viewMatrix[11] = 0.0;
+    viewMatrix[15] = 1.0;
+}
+
+function vec3Dot(a, b) {
+    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}
+
+function vec3Cross(a, b, res) {
+    res[0] = a[1] * b[2] - b[1] * a[2];
+    res[1] = a[2] * b[0] - b[2] * a[0];
+    res[2] = a[0] * b[1] - b[0] * a[1];
+}
+
+function vec3Normalize(a) {
+    var mag = Math.sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]);
+    a[0] /= mag; a[1] /= mag; a[2] /= mag;
 }
