@@ -6,3 +6,4 @@ Try my assignments online:<br>
 * [Prog1](https://qiaowenyoung.github.io/ComputerGraphics/prog1/features.html)<br>
 * [Lab2](https://qiaowenyoung.github.io/ComputerGraphics/lab2/features.html)<br>
 * [Prog2](https://qiaowenyoung.github.io/ComputerGraphics/prog2/features.html)<br>
+* [Lab3](https://qiaowenyoung.github.io/ComputerGraphics/lab3/features.html)<br>
