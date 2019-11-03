@@ -1,6 +1,6 @@
 # ComputerGraphics
 UCSC CSE 160/L course labs and programs<br>
-Course website: https://classes.soe.ucsc.edu/cse160/Fall19/<br>
+[Course website](https://classes.soe.ucsc.edu/cse160/Fall19/)<br>
 ## Resources
 * [Textbook](https://sites.google.com/site/webglbook/)
 * [WebGL Tutorial](https://webglfundamentals.org/)<br>
