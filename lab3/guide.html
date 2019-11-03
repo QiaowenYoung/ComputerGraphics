@@ -59,28 +59,33 @@
         <h1>User-guide and features</h1>
         <h3>Features</h3>
         <p>The canvas is 600x600 in dimension.</p>
-        <p>Left click to draw a red tree with the recursion level 4 at the mouse click position. 
-            Right click to draw a blue tree with the recursion level 6 at the mouse click position. 
-            A red tree's trunk is 50 in length, blue the 40. Each branch' length is 1/2 of its father's.
+        <p>Left click to draw a red tree, right click to draw a blue tree. 
         </p>
-        <p>Click on the toggle below canvas to change view from top to side.
-            Click back and change the view back. The second toggle is to switch between orthographic view and perspective view. 
-            The third toggle is to switch between flat shading and wireframe.
+        <p>Click on the toggle below canvas to change view from top to side. 
+            The second toggle is to switch between orthographic view and perspective view. 
+            The checkbox under two toggles is to choose between flat, smooth or wireframe.
         </p>
         <p>Click on the first button to save your current work to file. 
-            Click on the second button to load a scene from file. Then click "submit" to see your previous work. 
-            The awesome part is that you can save multiple scenes and load them later at your will!
+            Click on the second button to load a scene from file. Then click "submit" to see your previous work.
+        </p>
+        <p>
+            Do a shift+click on a tree to select it and change its color to green. The glosiness is also changed.
         </p>
         <h3>Thoughts</h3>
-        <p>I calculate all the coordinates for a whole tree and it's normals and store them in the ./points.js, 
+        <p>I calculate all the coordinates for a whole tree and it's normals and store them in the ./point.js, 
             so that the web page can be immediately loaded without delay caused by calculation. 
-            There are 4 arrays in the ./points.js, namely cylinderl (the tree created by a left click), 
-            cylinderr (by a right click), nl (normals for a left click tree), nr (normals for a right one).
-            You may want to open the console and see their values.
+            There are 6 arrays in the ./points.js, namely cylinderl (the tree created by a left click), 
+            cylinderr (by a right click), nl (normals for a left click tree under smooth shading), 
+            nr (normals for a right one under smooth shading), nnl (normals for a left click under flat shading), 
+            nnr (normals for a right click under smooth shading).
         </p>
-        <p>The algorithm for the calculation is in ./algorithm.js, 
-            basically transforming one cylinder to where it should be and save the coordinates in arrays. 
-            The file ./algorithm.js has detailed documentation for you to check.</p>
+        <p>
+            When do the picking part, I firstly re-draw all the trees with different colors. This is done by changing
+            the rgba.r's value. Then, I read the pixel's rgba and compares the r value with all the trees' r values. If 
+            there is one tree that satisfies the match, store the tree's left/right and xy coordinates. Afterwards, I redraw 
+            those unchosen trees with their original colors and draw the chosen tree with a new color.
+        </p>
+        <p>The algorithm for the trees calculation is in ./algorithm.js. It has detailed documentation for you to check.</p>
         <a href="features.html">Homepage |</a>
         <a href="driver.html">| My canvas</a>
     </div>
