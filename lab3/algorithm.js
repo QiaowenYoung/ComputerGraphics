@@ -2,6 +2,7 @@ var cylinderl = [], cylinderr = []; // cylinderl stores a tree created by a left
 var positionsl = [], positionsr = [];
 var ml = [], mr = []; // see in function generate_point
 var nl = [], nr = [];
+var nnl = [], nnr = [];
 
 function main(){
     positionsl.push(0); positionsl.push(0); positionsl.push(0);
@@ -24,20 +25,23 @@ function main(){
         cylinderr = cylinderr.concat(array);
     }
 
-    // Calculate normals for both left-click tree and right-click tree
-    setNormals();
+    // Calculate normals for both left-click tree and right-click tree: smooth shading
+    setNormals1();
+
+    // flat shading
+    setNormals2();
 }
 
 
-/* setNormals
+/* setNormals1
  *
  * Thoughts:
  * I get every 3 points' coordinates, and in a CCW mark them as a, b, c.
  * Then, I calculate ba and bc, and do the cross product so I can get the normal for this plane.
- * In this way, I get all the coordinates for a left-click tree's normals and store them into the array "nl".
+ * Then, I calculate every node's normal: avg of its surrounding polygons, and store it into "nl".
  * The right-click tree's normals are stored into "nr".
  */
-function setNormals() {
+function setNormals1() {
     var l1 = cylinderl.length;
     var normall = [];
     for (var i = 0; i < l1; i += 9) {
@@ -78,7 +82,7 @@ function setNormals() {
                 normal[2] += normall[j + 2];
                 continue;
             }
-            if (normall[i + 9] == point[0] && normall[i + 10] == point[1] && normall[i + 11] == point[2]) {
+            if (normall[j + 9] == point[0] && normall[j + 10] == point[1] && normall[j + 11] == point[2]) {
                 normal[0] += normall[j];
                 normal[1] += normall[j + 1];
                 normal[2] += normall[j + 2];
@@ -116,7 +120,6 @@ function setNormals() {
         normalr = normalr.concat(a);
         normalr = normalr.concat(b);
         normalr = normalr.concat(c);
-
     }
     for (var i = 0; i < l2; i += 3) {
         var point = [cylinderr[i], cylinderr[i + 1], cylinderr[i + 2]];
@@ -149,6 +152,59 @@ function setNormals() {
             normal[2] /= len;
         }
         nr = nr.concat(normal);
+    }
+}
+
+/* setNormals2
+ *
+ * Thoughts:
+ * I get every 3 points' coordinates, and in a CCW mark them as a, b, c.
+ * Then, I calculate ba and bc, and do the cross product so I can get the normal for this plane.
+ * In this way, I get all the coordinates for a left-click tree's normals and store them into the array "nl".
+ * The right-click tree's normals are stored into "nr".
+ */
+function setNormals2() {
+    var l1 = cylinderl.length;
+    for (var i = 0; i < l1; i += 9) {
+        var a = [cylinderl[i], cylinderl[i + 1], cylinderl[i + 2]];
+        var b = [cylinderl[i + 3], cylinderl[i + 4], cylinderl[i + 5]];
+        var c = [cylinderl[i + 6], cylinderl[i + 7], cylinderl[i + 8]];
+        var ba = [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+        var bc = [c[0] - b[0], c[1] - b[1], c[2] - b[2]];
+        var normalb = [];
+
+        normalb.push(bc[1] * ba[2] - bc[2] * ba[1]);
+        normalb.push(ba[0] * bc[2] - ba[2] * bc[0]);
+        normalb.push(bc[0] * ba[1] - bc[1] * ba[0]);
+        var lenb = Math.sqrt(Math.pow(normalb[0], 2) + Math.pow(normalb[1], 2) + Math.pow(normalb[2], 2));
+        normalb[0] /= lenb;
+        normalb[1] /= lenb;
+        normalb[2] /= lenb;
+
+        nnl = nnl.concat(normalb);
+        nnl = nnl.concat(normalb);
+        nnl = nnl.concat(normalb);
+    }
+    var l2 = cylinderr.length;
+    for (var i = 0; i < l2; i += 9) {
+        var a = [cylinderr[i], cylinderr[i + 1], cylinderr[i + 2]];
+        var b = [cylinderr[i + 3], cylinderr[i + 4], cylinderr[i + 5]];
+        var c = [cylinderr[i + 6], cylinderr[i + 7], cylinderr[i + 8]];
+        var ba = [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+        var bc = [c[0] - b[0], c[1] - b[1], c[2] - b[2]];
+        var normalb = [];
+
+        normalb.push(bc[1] * ba[2] - bc[2] * ba[1]);
+        normalb.push(ba[0] * bc[2] - ba[2] * bc[0]);
+        normalb.push(bc[0] * ba[1] - bc[1] * ba[0]);
+        var lenb = Math.sqrt(Math.pow(normalb[0], 2) + Math.pow(normalb[1], 2) + Math.pow(normalb[2], 2));
+        normalb[0] /= lenb;
+        normalb[1] /= lenb;
+        normalb[2] /= lenb;
+
+        nnr = nnr.concat(normalb);
+        nnr = nnr.concat(normalb);
+        nnr = nnr.concat(normalb);
     }
 }
 
