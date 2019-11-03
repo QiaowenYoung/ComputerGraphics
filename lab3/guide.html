@@ -72,18 +72,16 @@
             Do a shift+click on a tree to select it and change its color to green. The glosiness is also changed.
         </p>
         <h3>Thoughts</h3>
-        <p>I calculate all the coordinates for a whole tree and it's normals and store them in the ./point.js, 
-            so that the web page can be immediately loaded without delay caused by calculation. 
+        <p>I calculate all the coordinates for a whole tree and it's normals and store them in the ./point.js. 
             There are 6 arrays in the ./points.js, namely cylinderl (the tree created by a left click), 
             cylinderr (by a right click), nl (normals for a left click tree under smooth shading), 
             nr (normals for a right one under smooth shading), nnl (normals for a left click under flat shading), 
-            nnr (normals for a right click under smooth shading).
+            nnr (normals for a right click under flat shading).
         </p>
         <p>
             When do the picking part, I firstly re-draw all the trees with different colors. This is done by changing
             the rgba.r's value. Then, I read the pixel's rgba and compares the r value with all the trees' r values. If 
-            there is one tree that satisfies the match, store the tree's left/right and xy coordinates. Afterwards, I redraw 
-            those unchosen trees with their original colors and draw the chosen tree with a new color.
+            there is one tree that satisfies the match, store the tree's left/right and xy coordinates.
         </p>
         <p>The algorithm for the trees calculation is in ./algorithm.js. It has detailed documentation for you to check.</p>
         <a href="features.html">Homepage |</a>
