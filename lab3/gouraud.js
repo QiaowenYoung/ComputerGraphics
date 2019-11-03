@@ -12,7 +12,6 @@ var VSHADER_SOURCE =
     'varying vec3 v_vertPos;\n' + // View Direction
     'uniform float u_shininessVal;\n' + // 20 or 5
     'uniform bool u_Clicked;\n' + // Mouse is pressed
-    'uniform vec3 u_Ks;\n' + // Ks
     'void main() {\n' +
     '  vec4 v_vertPos4 = u_mvpMatrix * a_Position;\n' +
     '  v_vertPos = vec3(v_vertPos4) / v_vertPos4.w;\n' +
@@ -31,7 +30,7 @@ var VSHADER_SOURCE =
     '    float specAngle = max(dot(R, V), 0.0);\n' +
     '    specular = pow(specAngle, u_shininessVal);\n' +
     '  }\n' +
-    '  v_Color = vec4(diffuse + u_Ks * vec3(1.0, 1.0, 1.0) * specular, a_Color.a);\n' +
+    '  v_Color = vec4(diffuse + vec3(1.0, 1.0, 1.0) * vec3(1.0, 1.0, 1.0) * specular, a_Color.a);\n' +
     '  if (u_Clicked) {\n' + //  Draw in the selected color if mouse is pressed
     '    v_Color = a_Color_2;\n' +
     '  }\n' +
@@ -47,12 +46,9 @@ var FSHADER_SOURCE =
     '  gl_FragColor = v_Color;\n' +
     '}\n';
 
-var Txl = [], Tyl = []; // (x, y) coordinates of a left click
-var Txr = [], Tyr = []; // (x, y) coordinates of a right click
-var countl = 0; // # of red trees
-var countr = 0; // # of blue trees
 var map = []; // each element contains a point, its count, a tag for red or blue and its xy coordinates
 var count = 0; // # of total trees
+var tree = []; // clicked trees
 // toggle1: 0 for top view, 1 for side view
 // toggle2: 0 for ortho view, 1 for pers view
 // toggle3: 0 for flat, 1 for smooth, 2 for wireframe
@@ -89,12 +85,11 @@ function main() {
     cylinderProgram.u_LightDirection = gl.getUniformLocation(cylinderProgram, 'u_LightDirection');
     cylinderProgram.u_shininessVal = gl.getUniformLocation(cylinderProgram, 'u_shininessVal');
     cylinderProgram.u_Clicked = gl.getUniformLocation(cylinderProgram, 'u_Clicked');
-    cylinderProgram.u_Ks = gl.getUniformLocation(cylinderProgram, 'u_Ks');
 
     if (cylinderProgram.a_Position < 0 || cylinderProgram.a_Color < 0 || cylinderProgram.a_Color_2 < 0 ||
         cylinderProgram.a_Normal < 0 || cylinderProgram.u_ViewMatrix < 0 || cylinderProgram.u_ProjMatrix < 0 ||
         cylinderProgram.u_Translation < 0 || cylinderProgram.u_LightColor < 0 || cylinderProgram.u_LightDirection < 0 ||
-        cylinderProgram.u_shininessVal < 0 || cylinderProgram.u_Clicked < 0 || cylinderProgram.u_Ks < 0) {
+        cylinderProgram.u_shininessVal < 0 || cylinderProgram.u_Clicked < 0) {
         console.log('Failed to locate variables for cylinder');
         return -1;
     }
@@ -119,10 +114,10 @@ function main() {
     checkbox1.addEventListener('change', function () {
         if (checkbox1.checked) {
             toggle1 = 1;
-            setView(gl, cylinderProgram);
+            draw(gl, cylinderProgram);
         } else {
             toggle1 = 0;
-            setView(gl, cylinderProgram);
+            draw(gl, cylinderProgram);
         }
     });
 
@@ -130,33 +125,34 @@ function main() {
     checkbox2.addEventListener('change', function () {
         if (checkbox2.checked) {
             toggle2 = 1;
-            setView(gl, cylinderProgram);
+            draw(gl, cylinderProgram);
         } else {
             toggle2 = 0;
-            setView(gl, cylinderProgram);
+            draw(gl, cylinderProgram);
         }
     });
 
-    setView(gl, cylinderProgram);
+    //setView(gl, cylinderProgram);
+    draw(gl, cylinderProgram);
 
     var rad = document.form.tree;
     rad[0].addEventListener('change', function () {
         toggle3 = 0;
-        setView(gl, cylinderProgram);
+        draw(gl, cylinderProgram);
     });
     rad[1].addEventListener('change', function () {
         toggle3 = 1;
-        setView(gl, cylinderProgram);
+        draw(gl, cylinderProgram);
     });
     rad[2].addEventListener('change', function () {
         toggle3 = 2;
-        setView(gl, cylinderProgram);
+        draw(gl, cylinderProgram);
     });
 
     var submit = document.getElementById('submit');
     submit.addEventListener('click', function () {
-        setView(gl, cylinderProgram);
-        // Change checkbox value based on the import
+        draw(gl, cylinderProgram);
+        // Change radio value based on the import
         if (toggle1 == 0) {
             checkbox1.checked = false;
         } else {
@@ -168,9 +164,13 @@ function main() {
             checkbox2.checked = true;
         }
         if (toggle3 == 0) {
-            checkbox3.checked = false;
-        } else {
-            checkbox3.checked = true;
+            rad[0].checked = true;
+        }
+        else if (toggle3 == 1){
+            rad[1].checked = true;
+        }
+        else{
+            rad[2].checked = true;
         }
     });
 }
@@ -188,7 +188,6 @@ function redraw(ev, gl, cylinderProgram) {
     var rect = ev.target.getBoundingClientRect();
     x = x - rect.left;
     y = rect.bottom - y;
-    var tree = []; // store the clicked tree's left/right and xy coordinates
     for (var i = 0; i < count; i++) {
         var newmap = map[i]; // newmap[0]: color, newmap[1]: left/right, newmap[2]: x coord, newmap[3]: y coord
         var color = newmap[0] / 255.0;
@@ -203,7 +202,6 @@ function redraw(ev, gl, cylinderProgram) {
         initNormals(gl, cylinderProgram, newmap[1], 0);
         gl.uniform1i(cylinderProgram.u_Clicked, 1);
         gl.vertexAttrib4f(cylinderProgram.a_Color_2, color, 0.0, 0.0, 1.0);
-        gl.uniform3fv(cylinderProgram.u_Ks, [1.0, 1.0, 1.0]);
         var len;
         if (newmap[1] == 0) {
             len = cylinderl.length / 3;
@@ -218,7 +216,7 @@ function redraw(ev, gl, cylinderProgram) {
     gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
     for (var i = 0; i < count; i++) {
         var newmap = map[i];
-        if (pixels[0] == newmap[0] && pixels[0] + pixels[1] + pixels[2] + pixels[3]!= 0) { // get the clicked tree's info
+        if (pixels[0] == newmap[0] && pixels[0] + pixels[1] + pixels[2] + pixels[3] != 0) { // get the clicked tree's info
             tree.push(newmap[1]);
             tree.push(newmap[2]);
             tree.push(newmap[3]);
@@ -228,9 +226,19 @@ function redraw(ev, gl, cylinderProgram) {
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
     gl.enable(gl.DEPTH_TEST);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    draw(gl, cylinderProgram);
+}
+
+function draw(gl, cylinderProgram) {
+    var bool = 1;
     for (var i = 0; i < count; i++) {
         var newmap = map[i];
-        if (tree.length == 0 || newmap[2] != tree[1] || newmap[3] != tree[2]) {
+        for (var j = 0; j < tree.length; j += 3) { // check if the current tree is clicked
+            if (newmap[2] == tree[j + 1] && newmap[3] == tree[j + 2]) {
+                bool = 0;
+            }
+        }
+        if (bool == 1) { // if not clicked, draw this tree
             gl.useProgram(cylinderProgram);
             gl.uniform1i(cylinderProgram.u_Clicked, 0);
             initPositions(gl, cylinderProgram, newmap[1]);
@@ -240,7 +248,6 @@ function redraw(ev, gl, cylinderProgram) {
             initMatrix(gl, cylinderProgram, toggle1, toggle2);
             initTranslation(gl, cylinderProgram, newmap[2], newmap[3], toggle2);
             initGloss(gl, cylinderProgram, newmap[1]);
-            gl.uniform3fv(cylinderProgram.u_Ks, [1.0, 1.0, 1.0]);
             var len;
             if (newmap[1] == 0) {
                 len = cylinderl.length / 3;
@@ -261,40 +268,41 @@ function redraw(ev, gl, cylinderProgram) {
                 gl.drawArrays(gl.LINES, 0, len);
             }
         }
+        bool = 1;
     }
-    if (tree.length != 0) {
-        gl.useProgram(cylinderProgram);
-        gl.uniform1i(cylinderProgram.u_Clicked, 0);
-        initPositions(gl, cylinderProgram, tree[0]);
-        gl.vertexAttrib4f(cylinderProgram.a_Color, 0.0, 1.0, 1.0, 1.0);
-        initLightColor(gl, cylinderProgram);
-        initLightDirection(gl, cylinderProgram);
-        initMatrix(gl, cylinderProgram, toggle1, toggle2);
-        initTranslation(gl, cylinderProgram, tree[1], tree[2], toggle2);
-        gl.uniform1f(cylinderProgram.u_shininessVal, 5.0);
-        gl.uniform3fv(cylinderProgram.u_Ks, [0.0, 1.0, 0.0]);
-        var len;
-        if (tree[0] == 0) {
-            len = cylinderl.length / 3;
-        }
-        else {
-            len = cylinderr.length / 3;
-        }
-        if (toggle3 == 0) { // Flat shading
-            initNormals(gl, cylinderProgram, tree[0], 0);
-            gl.drawArrays(gl.TRIANGLES, 0, len);
-        }
-        else if (toggle3 == 1) { // smooth
-            initNormals(gl, cylinderProgram, tree[0], 1);
-            gl.drawArrays(gl.TRIANGLES, 0, len);
-        }
-        else if (toggle3 == 2) { // wireframe using flat shading normals
-            initNormals(gl, cylinderProgram, tree[0], 0);
-            gl.drawArrays(gl.LINES, 0, len);
+    if (tree.length != 0) { // if there are clicked trees, draw them in a different way
+        for (var i = 0; i < tree.length; i += 3) {
+            gl.useProgram(cylinderProgram);
+            gl.uniform1i(cylinderProgram.u_Clicked, 0);
+            initPositions(gl, cylinderProgram, tree[i]);
+            gl.vertexAttrib4f(cylinderProgram.a_Color, 0.0, 1.0, 0.0, 1.0);
+            initLightColor(gl, cylinderProgram);
+            initLightDirection(gl, cylinderProgram);
+            initMatrix(gl, cylinderProgram, toggle1, toggle2);
+            initTranslation(gl, cylinderProgram, tree[i + 1], tree[i + 2], toggle2);
+            gl.uniform1f(cylinderProgram.u_shininessVal, 1.0);
+            var len;
+            if (tree[i] == 0) {
+                len = cylinderl.length / 3;
+            }
+            else {
+                len = cylinderr.length / 3;
+            }
+            if (toggle3 == 0) { // Flat shading
+                initNormals(gl, cylinderProgram, tree[i], 0);
+                gl.drawArrays(gl.TRIANGLES, 0, len);
+            }
+            else if (toggle3 == 1) { // smooth
+                initNormals(gl, cylinderProgram, tree[i], 1);
+                gl.drawArrays(gl.TRIANGLES, 0, len);
+            }
+            else if (toggle3 == 2) { // wireframe using flat shading normals
+                initNormals(gl, cylinderProgram, tree[i], 0);
+                gl.drawArrays(gl.LINES, 0, len);
+            }
         }
     }
 }
-
 
 /* save: refer to https://jsfiddle.net/4v26ebtp/
  * 
@@ -321,15 +329,20 @@ function exportRaw(name, data) {
 
 function save() {
     var arr = [];
+    var v = [];
     arr.push(toggle1);
     arr.push(toggle2);
     arr.push(toggle3);
-    arr.push(countl);
-    arr = arr.concat(Txl);
-    arr = arr.concat(Tyl);
-    arr.push(countr);
-    arr = arr.concat(Txr);
-    arr = arr.concat(Tyr);
+    arr.push(count);
+    for(var i = 0; i < count; i++) {
+        var newmap = map[i];
+        v.push(newmap[0]);
+        v.push(newmap[1]);
+        v.push(newmap[2]);
+        v.push(newmap[3]);
+    }
+    arr = arr.concat(v);
+    arr = arr.concat(tree);
     exportRaw('test.txt', JSON.stringify(arr));
 }
 
@@ -353,89 +366,20 @@ function load() {
         toggle1 = arr[0];
         toggle2 = arr[1];
         toggle3 = arr[2];
-        countl = arr[3];
-        var txl = arr.slice(4, countl + 4);
-        var tyl = arr.slice(countl + 4, 2 * countl + 4);
-        countr = arr[2 * countl + 4];
-        var txr = arr.slice(2 * countl + 5, 2 * countl + 5 + countr);
-        var tyr = arr.slice(2 * countl + 5 + countr, 2 * countl + 5 + 2 * countr);
-        Txl = [];
-        Tyl = [];
-        Txr = [];
-        Tyr = [];
-        for (var i = 0; i < countl; i++) {
-            Txl.push(txl[i]);
-            Tyl.push(tyl[i]);
+        count = arr[3];
+        map = [];
+        var i;
+        for(i = 4; i < 4 + count * 4; i += 4) {
+            var newmap = [];
+            newmap.push(arr[i]);
+            newmap.push(arr[i + 1]);
+            newmap.push(arr[i + 2]);
+            newmap.push(arr[i + 3]);
+            map.push(newmap);
         }
-        for (var i = 0; i < countr; i++) {
-            Txr.push(txr[i]);
-            Tyr.push(tyr[i]);
-        }
-    }
-}
-
-/* setView
- * input:
- * gl, cylinderProgram
- * output:
- * none
- * use:
- * draw a whole scene
- */
-function setView(gl, cylinderProgram) {
-    // Specify the color for clearing <canvas>
-    gl.clearColor(1.0, 1.0, 1.0, 1.0);
-    gl.enable(gl.DEPTH_TEST);
-    // Clear color and depth buffer
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    for (var i = 0; i < countl; i++) { // Draw red trees
-        gl.useProgram(cylinderProgram);
-        gl.uniform1i(cylinderProgram.u_Clicked, 0);
-        initPositions(gl, cylinderProgram, 0);
-        initColors(gl, cylinderProgram, 0);
-        initLightColor(gl, cylinderProgram);
-        initLightDirection(gl, cylinderProgram);
-        initMatrix(gl, cylinderProgram, toggle1, toggle2);
-        initTranslation(gl, cylinderProgram, Txl[i], Tyl[i], toggle2);
-        initGloss(gl, cylinderProgram, 0);
-        gl.uniform3fv(cylinderProgram.u_Ks, [1.0, 1.0, 1.0]);
-        var len = cylinderl.length / 3;
-        if (toggle3 == 0) { // Flat shading
-            initNormals(gl, cylinderProgram, 0, 0);
-            gl.drawArrays(gl.TRIANGLES, 0, len);
-        }
-        else if (toggle3 == 1) { // smooth
-            initNormals(gl, cylinderProgram, 0, 1);
-            gl.drawArrays(gl.TRIANGLES, 0, len);
-        }
-        else if (toggle3 == 2) { // wireframe using flat shading normals
-            initNormals(gl, cylinderProgram, 0, 0);
-            gl.drawArrays(gl.LINES, 0, len);
-        }
-    }
-    for (var i = 0; i < countr; i++) { // Draw blue trees
-        gl.useProgram(cylinderProgram);
-        gl.uniform1i(cylinderProgram.u_Clicked, 0);
-        initPositions(gl, cylinderProgram, 1);
-        initColors(gl, cylinderProgram, 1);
-        initLightColor(gl, cylinderProgram);
-        initLightDirection(gl, cylinderProgram);
-        initMatrix(gl, cylinderProgram, toggle1, toggle2);
-        initTranslation(gl, cylinderProgram, Txr[i], Tyr[i], toggle2);
-        initGloss(gl, cylinderProgram, 1);
-        gl.uniform3fv(cylinderProgram.u_Ks, [1.0, 1.0, 1.0]);
-        var len = cylinderr.length / 3;
-        if (toggle3 == 0) { // Flat shading
-            initNormals(gl, cylinderProgram, 1, 0);
-            gl.drawArrays(gl.TRIANGLES, 0, len);
-        }
-        else if (toggle3 == 1) { // smooth
-            initNormals(gl, cylinderProgram, 1, 1);
-            gl.drawArrays(gl.TRIANGLES, 0, len);
-        }
-        else if (toggle3 == 2) { // wireframe using flat shading normals
-            initNormals(gl, cylinderProgram, 1, 0);
-            gl.drawArrays(gl.LINES, 0, len);
+        tree = [];
+        for (; i < arr.length; i++){
+            tree.push(arr[i]);
         }
     }
 }
@@ -455,8 +399,6 @@ function click(ev, gl, canvas, cylinderProgram) {
         newmap.push(x);
         newmap.push(y);
         map.push(newmap);
-        countl++;
-        Txl.push(x); Tyl.push(y);
     }
     else if (ev.button === 2) {
         var newmap = [];
@@ -465,10 +407,8 @@ function click(ev, gl, canvas, cylinderProgram) {
         newmap.push(x);
         newmap.push(y);
         map.push(newmap);
-        countr++;
-        Txr.push(x); Tyr.push(y);
     }
-    setView(gl, cylinderProgram);
+    draw(gl, cylinderProgram);
 }
 
 /* initPositions
