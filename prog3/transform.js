@@ -128,7 +128,9 @@ function main() {
 
     document.onmousewheel = function (ev) {
         var d = ev.wheelDelta;
-        S = S + S * d / 5000;
+        if (tree.length != 0) {
+            S = S + S * d / 5000;
+        }
         draw(gl, cylinderProgram);
     };
 
@@ -452,6 +454,19 @@ function click(ev, gl, canvas, cylinderProgram) {
     draw(gl, cylinderProgram, 1.0);
 }
 
+function translate(ev, gl, cylinderProgram) {
+    gl.useProgram(cylinderProgram);
+    var x = ev.clientX; // x coordinate of a mouse pointer
+    var y = ev.clientY; // y coordinate of a mouse pointer
+    var rect = ev.target.getBoundingClientRect();
+
+    x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
+    y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
+
+    tree[2] = x;
+    tree[3] = y;
+    draw(gl, cylinderProgram);
+}
 
 //function Rotate_z()
 
