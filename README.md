@@ -11,3 +11,4 @@ UCSC CSE 160/L course labs and programs<br>
 * [Lab2](https://qiaowenyoung.github.io/ComputerGraphics/lab2/features.html)<br>
 * [Prog2](https://qiaowenyoung.github.io/ComputerGraphics/prog2/features.html)<br>
 * [Lab3](https://qiaowenyoung.github.io/ComputerGraphics/lab3/features.html)<br>
+* [Prog3](https://qiaowenyoung.github.io/ComputerGraphics/prog3/features.html)<br>
