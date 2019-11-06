@@ -352,7 +352,7 @@ function draw(gl, cylinderProgram) {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     for (var i = 0; i < count; i++) {
         var newmap = map[i];
-        if (newmap[1] == 0) { // if current tree has not been clicked, draw this tree using normal mode.
+        if (newmap[1] == 0 || newmap[1] == 1) { // if current tree has not been clicked, draw this tree using normal mode.
             var s = newmap[6];
             scale = new Float32Array([
                 s, 0.0, 0.0, 0.0,
@@ -368,46 +368,6 @@ function draw(gl, cylinderProgram) {
             initLightDirection(gl, cylinderProgram);
             initMatrix(gl, cylinderProgram, toggle1, toggle2);
             initTranslation2(gl, cylinderProgram, newmap[3], newmap[4], newmap[5], toggle2);
-            initGloss(gl, cylinderProgram, newmap[2]);
-            initScale(gl, cylinderProgram);
-            var len;
-            if (newmap[2] == 0) {
-                len = cylinderl.length / 3;
-            }
-            else {
-                len = cylinderr.length / 3;
-            }
-            if (toggle3 == 0) { // Flat shading
-                initNormals(gl, cylinderProgram, newmap[2], 0);
-                gl.drawArrays(gl.TRIANGLES, 0, len);
-            }
-            else if (toggle3 == 1) { // smooth
-                initNormals(gl, cylinderProgram, newmap[2], 1);
-                gl.drawArrays(gl.TRIANGLES, 0, len);
-            }
-            else if (toggle3 == 2) { // wireframe using flat shading normals
-                initNormals(gl, cylinderProgram, newmap[2], 0);
-                gl.drawArrays(gl.LINES, 0, len);
-            }
-        }
-        else if (newmap[1] == 1) { // current tree has been clicked before
-            var s = newmap[6];
-            scale = new Float32Array([
-                s, 0.0, 0.0, 0.0,
-                0.0, s, 0.0, 0.0,
-                0.0, 0.0, s, 0.0,
-                0.0, 0.0, 0.0, 1.0
-            ]);
-            gl.useProgram(cylinderProgram);
-            gl.uniform1i(cylinderProgram.u_Clicked, 0);
-            initPositions(gl, cylinderProgram, newmap[2]);
-            //gl.vertexAttrib4f(cylinderProgram.a_Color, 0.0, 1.0, 0.0, 1.0);
-            initColors(gl, cylinderProgram, newmap[2]);
-            initLightColor(gl, cylinderProgram);
-            initLightDirection(gl, cylinderProgram);
-            initMatrix(gl, cylinderProgram, toggle1, toggle2);
-            initTranslation2(gl, cylinderProgram, newmap[3], newmap[4], newmap[5], toggle2);
-            //gl.uniform1f(cylinderProgram.u_shininessVal, 1.0);
             initGloss(gl, cylinderProgram, newmap[2]);
             initScale(gl, cylinderProgram);
             var len;
