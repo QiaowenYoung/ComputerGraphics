@@ -53,6 +53,7 @@ var FSHADER_SOURCE =
 var map = []; // each element contains a point
 var count = 0; // # of total trees
 var selected = []; // current selected tree
+var offx, offy;
 
 // var S = 1.0;
 var scale = new Float32Array([
@@ -118,13 +119,45 @@ function main() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     canvas.onmousedown = function (ev) {
-        if (ev.shiftKey == 1) {
+        if (ev.ctrlKey == 1) {
+            console.log('ctrl');
+            var x = ev.clientX; // x coordinate of a mouse pointer
+            var y = ev.clientY; // y coordinate of a mouse pointer
+            var rect = ev.target.getBoundingClientRect();
+
+            x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
+            y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
+            offx = x;
+            offy = y;
+        }
+        else if (ev.shiftKey == 1) {
+            console.log('shift');
             redraw(ev, gl, cylinderProgram);
         }
+        else if(ev.button == 4) {
+            console.log('middle');
+        }
         else {
+            console.log('plain');
             click(ev, gl, canvas, cylinderProgram);
         }
     };
+
+    canvas.onmouseup = function (ev) {
+        if(ev.ctrlKey == 1) {
+            var x = ev.clientX; // x coordinate of a mouse pointer
+            var y = ev.clientY; // y coordinate of a mouse pointer
+            var rect = ev.target.getBoundingClientRect();
+
+            x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
+            y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
+            offx = x - offx;
+            offy = y - offy;
+            selected[2] += offx;
+            selected[3] += offy;
+            draw(gl, cylinderProgram);
+        }
+    }
 
     document.onmousewheel = function (ev) {
         var d = ev.wheelDelta;
@@ -536,6 +569,8 @@ function click(ev, gl, canvas, cylinderProgram) {
     }
     draw(gl, cylinderProgram);
 }
+
+
 /*
 function translate(ev, gl, cylinderProgram) {
     gl.useProgram(cylinderProgram);
@@ -775,6 +810,16 @@ function initTranslation(gl, cylinderProgram, tx, ty, tag) {
     }
     else {
         gl.uniform4f(cylinderProgram.u_Translation, 200 * tx, 200 * ty, 0.0, 0.0);
+    }
+}
+
+function initTranslation2(gl, cylinderProgram, tx, ty, tz, tag) {
+    gl.useProgram(cylinderProgram);
+    if (tag == 0) {
+        gl.uniform4f(cylinderProgram.u_Translation, tx, ty, tz, 0.0);
+    }
+    else {
+        gl.uniform4f(cylinderProgram.u_Translation, 200 * tx, 200 * ty, 200 * tz, 0.0);
     }
 }
 
