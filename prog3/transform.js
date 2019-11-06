@@ -134,7 +134,7 @@ function main() {
             console.log('shift');
             redraw(ev, gl, cylinderProgram);
         }
-        else if(ev.button == 4) {
+        else if(ev.which == 2) {
             console.log('middle');
             var y = ev.clientY; // y coordinate of a mouse pointer
             var rect = ev.target.getBoundingClientRect();
@@ -162,7 +162,7 @@ function main() {
             selected[3] += offy;
             draw(gl, cylinderProgram);
         }
-        else if (ev.button == 4) {
+        else if (ev.which == 2) {
             var y = ev.clientY; // y coordinate of a mouse pointer
             var rect = ev.target.getBoundingClientRect();
 
