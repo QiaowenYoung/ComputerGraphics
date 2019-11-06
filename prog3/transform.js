@@ -53,7 +53,7 @@ var FSHADER_SOURCE =
 var map = []; // each element contains a point
 var count = 0; // # of total trees
 var selected = []; // current selected tree
-var offx, offy;
+var offx, offy, offz;
 
 // var S = 1.0;
 var scale = new Float32Array([
@@ -136,6 +136,11 @@ function main() {
         }
         else if(ev.button == 4) {
             console.log('middle');
+            var y = ev.clientY; // y coordinate of a mouse pointer
+            var rect = ev.target.getBoundingClientRect();
+
+            y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
+            offz = y;
         }
         else {
             console.log('plain');
@@ -157,12 +162,21 @@ function main() {
             selected[3] += offy;
             draw(gl, cylinderProgram);
         }
+        else if (ev.button == 4) {
+            var y = ev.clientY; // y coordinate of a mouse pointer
+            var rect = ev.target.getBoundingClientRect();
+
+            y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
+            offz = offz - y;
+            selected[4] += offz;
+            draw(gl, cylinderProgram);
+        }
     }
 
     document.onmousewheel = function (ev) {
         var d = ev.wheelDelta;
         if (selected.length != 0) {
-            selected[4] = selected[4] + selected[4] * d / 5000;
+            selected[5] = selected[5] + selected[5] * d / 5000;
         }
         draw(gl, cylinderProgram);
     };
@@ -251,7 +265,7 @@ function redraw(ev, gl, cylinderProgram) {
         // redraw all the trees using different colors
         var newmap = map[i];
         var color = newmap[0] / 255.0;
-        var s = newmap[5];
+        var s = newmap[6];
         scale = new Float32Array([
             s, 0.0, 0.0, 0.0,
             0.0, s, 0.0, 0.0,
@@ -264,7 +278,7 @@ function redraw(ev, gl, cylinderProgram) {
         initLightColor(gl, cylinderProgram);
         initLightDirection(gl, cylinderProgram);
         initMatrix(gl, cylinderProgram, toggle1, toggle2);
-        initTranslation(gl, cylinderProgram, newmap[3], newmap[4], toggle2);
+        initTranslation2(gl, cylinderProgram, newmap[3], newmap[4], newmap[5], toggle2);
         initGloss(gl, cylinderProgram, newmap[2]);
         initNormals(gl, cylinderProgram, newmap[2], 0);
         gl.uniform1i(cylinderProgram.u_Clicked, 1);
@@ -303,7 +317,8 @@ function redraw(ev, gl, cylinderProgram) {
             newmap[1] = 1;
             newmap[3] = selected[2]; // update x
             newmap[4] = selected[3]; // update y
-            newmap[5] = selected[4]; // update scaling factor
+            newmap[5] = selected[4]; // update z
+            newmap[6] = selected[5]; // update scaling factor
             map[selected[0]] = newmap;
             selected = [];
         }
@@ -317,7 +332,8 @@ function redraw(ev, gl, cylinderProgram) {
                 selected.push(newmap[2]); // left or right
                 selected.push(newmap[3]); // x
                 selected.push(newmap[4]); // y
-                selected.push(newmap[5]); // scaling factor
+                selected.push(newmap[5]); // z
+                selected.push(newmap[6]); // scaling factor
                 newmap[1] = 2; // currently selected
                 map[i] = [];
                 map[i] = newmap;
@@ -335,7 +351,7 @@ function draw(gl, cylinderProgram) {
     for (var i = 0; i < count; i++) {
         var newmap = map[i];
         if (newmap[1] == 0) { // if current tree has not been clicked, draw this tree using normal mode.
-            var s = newmap[5];
+            var s = newmap[6];
             scale = new Float32Array([
                 s, 0.0, 0.0, 0.0,
                 0.0, s, 0.0, 0.0,
@@ -349,7 +365,7 @@ function draw(gl, cylinderProgram) {
             initLightColor(gl, cylinderProgram);
             initLightDirection(gl, cylinderProgram);
             initMatrix(gl, cylinderProgram, toggle1, toggle2);
-            initTranslation(gl, cylinderProgram, newmap[3], newmap[4], toggle2);
+            initTranslation2(gl, cylinderProgram, newmap[3], newmap[4], newmap[5], toggle2);
             initGloss(gl, cylinderProgram, newmap[2]);
             initScale(gl, cylinderProgram);
             var len;
@@ -373,7 +389,7 @@ function draw(gl, cylinderProgram) {
             }
         }
         else if (newmap[1] == 1) { // current tree has been clicked before, draw it in green
-            var s = newmap[5];
+            var s = newmap[6];
             scale = new Float32Array([
                 s, 0.0, 0.0, 0.0,
                 0.0, s, 0.0, 0.0,
@@ -387,7 +403,7 @@ function draw(gl, cylinderProgram) {
             initLightColor(gl, cylinderProgram);
             initLightDirection(gl, cylinderProgram);
             initMatrix(gl, cylinderProgram, toggle1, toggle2);
-            initTranslation(gl, cylinderProgram, newmap[3], newmap[4], toggle2);
+            initTranslation2(gl, cylinderProgram, newmap[3], newmap[4], newmap[5], toggle2);
             gl.uniform1f(cylinderProgram.u_shininessVal, 1.0);
             initScale(gl, cylinderProgram);
             var len;
@@ -411,7 +427,7 @@ function draw(gl, cylinderProgram) {
             }
         }
         else { // current tree is being selected
-            var s = selected[4];
+            var s = selected[5];
             scale = new Float32Array([
                 s, 0.0, 0.0, 0.0,
                 0.0, s, 0.0, 0.0,
@@ -425,7 +441,7 @@ function draw(gl, cylinderProgram) {
             initLightColor(gl, cylinderProgram);
             initLightDirection(gl, cylinderProgram);
             initMatrix(gl, cylinderProgram, toggle1, toggle2);
-            initTranslation(gl, cylinderProgram, selected[2], selected[3], toggle2);
+            initTranslation2(gl, cylinderProgram, selected[2], selected[3], selected[4], toggle2);
             gl.uniform1f(cylinderProgram.u_shininessVal, 1.0);
             initScale(gl, cylinderProgram);
             var len;
@@ -453,7 +469,8 @@ function draw(gl, cylinderProgram) {
             newmap[1] = 2;
             newmap[3] = selected[2]; // update x
             newmap[4] = selected[3]; // update y
-            newmap[5] = selected[4]; // update scaling factor
+            newmap[5] = selected[4]; // update z
+            newmap[6] = selected[5]; // update scaling factor
             map[selected[0]] = newmap;
         }
     }
@@ -554,6 +571,7 @@ function click(ev, gl, canvas, cylinderProgram) {
         newmap.push(0); // left click
         newmap.push(x);
         newmap.push(y);
+        newmap.push(0.0); // z coord
         newmap.push(1.0); // Scaling factor
         map.push(newmap);
     }
@@ -564,6 +582,7 @@ function click(ev, gl, canvas, cylinderProgram) {
         newmap.push(1); // right click
         newmap.push(x);
         newmap.push(y);
+        newmap.push(0.0); // z coord
         newmap.push(1.0); // Scaling factor
         map.push(newmap);
     }
