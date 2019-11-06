@@ -50,15 +50,15 @@ var FSHADER_SOURCE =
     '  gl_FragColor = v_Color;\n' +
     '}\n';
 
-var map = []; // each element contains a point, its count, a tag for red or blue and its xy coordinates
+var map = []; // each element contains a point
 var count = 0; // # of total trees
-var tree = []; // clicked trees
+var selected = []; // current selected tree
 
-var S = 1.0;
+// var S = 1.0;
 var scale = new Float32Array([
-    S, 0.0, 0.0, 0.0,
-    0.0, S, 0.0, 0.0,
-    0.0, 0.0, S, 0.0,
+    1.0, 0.0, 0.0, 0.0,
+    0.0, 1.0, 0.0, 0.0,
+    0.0, 0.0, 1.0, 0.0,
     0.0, 0.0, 0.0, 1.0
 ]);
 
@@ -128,8 +128,8 @@ function main() {
 
     document.onmousewheel = function (ev) {
         var d = ev.wheelDelta;
-        if (tree.length != 0) {
-            S = S + S * d / 5000;
+        if (selected.length != 0) {
+            selected[4] = selected[4] + selected[4] * d / 5000;
         }
         draw(gl, cylinderProgram);
     };
@@ -207,46 +207,87 @@ function main() {
  * redraw the scene after a shift+click
  */
 function redraw(ev, gl, cylinderProgram) {
+    gl.clearColor(1.0, 1.0, 1.0, 1.0);
+    gl.enable(gl.DEPTH_TEST);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     var x = ev.clientX, y = ev.clientY;
     var rect = ev.target.getBoundingClientRect();
     x = x - rect.left;
     y = rect.bottom - y;
     for (var i = 0; i < count; i++) {
-        var newmap = map[i]; // newmap[0]: color, newmap[1]: left/right, newmap[2]: x coord, newmap[3]: y coord
+        // redraw all the trees using different colors
+        var newmap = map[i];
         var color = newmap[0] / 255.0;
+        var s = newmap[5];
+        scale = new Float32Array([
+            s, 0.0, 0.0, 0.0,
+            0.0, s, 0.0, 0.0,
+            0.0, 0.0, s, 0.0,
+            0.0, 0.0, 0.0, 1.0
+        ]);
         gl.useProgram(cylinderProgram);
-        initPositions(gl, cylinderProgram, newmap[1]);
-        initColors(gl, cylinderProgram, newmap[1]);
+        initPositions(gl, cylinderProgram, newmap[2]);
+        initColors(gl, cylinderProgram, newmap[2]);
         initLightColor(gl, cylinderProgram);
         initLightDirection(gl, cylinderProgram);
         initMatrix(gl, cylinderProgram, toggle1, toggle2);
-        initTranslation(gl, cylinderProgram, newmap[2], newmap[3], toggle2);
-        initGloss(gl, cylinderProgram, newmap[1]);
-        initNormals(gl, cylinderProgram, newmap[1], 0);
+        initTranslation(gl, cylinderProgram, newmap[3], newmap[4], toggle2);
+        initGloss(gl, cylinderProgram, newmap[2]);
+        initNormals(gl, cylinderProgram, newmap[2], 0);
         gl.uniform1i(cylinderProgram.u_Clicked, 1);
         gl.vertexAttrib4f(cylinderProgram.a_Color_2, color, 0.0, 0.0, 1.0);
+        initScale(gl, cylinderProgram);
         var len;
-        if (newmap[1] == 0) {
+        if (newmap[2] == 0) {
             len = cylinderl.length / 3;
         }
         else {
             len = cylinderr.length / 3;
         }
-        gl.drawArrays(gl.TRIANGLES, 0, len);
+        if (toggle3 == 0) { // Flat shading
+            initNormals(gl, cylinderProgram, newmap[2], 0);
+            gl.drawArrays(gl.TRIANGLES, 0, len);
+        }
+        else if (toggle3 == 1) { // smooth
+            initNormals(gl, cylinderProgram, newmap[2], 1);
+            gl.drawArrays(gl.TRIANGLES, 0, len);
+        }
+        else if (toggle3 == 2) { // wireframe using flat shading normals
+            initNormals(gl, cylinderProgram, newmap[2], 0);
+            gl.drawArrays(gl.LINES, 0, len);
+        }
     }
 
     var pixels = new Uint8Array(4); // Array for storing the pixel value
     gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
-    if (pixels[0] + pixels[1] + pixels[2] == 0) { // click on blank
-        tree = [];
+    console.log(pixels);
+    if (pixels[0] + pixels[1] + pixels[2] + pixels[3] == 1020) {
+        // click on blank, need to check current tree and store its status back to map
+        if (selected.length != 0) {
+            var newmap = map[selected[0]]; // get the selected tree in map
+            // update selected tree's status
+            map[selected[0]] = [];
+            newmap[1] = 1;
+            newmap[3] = selected[2]; // update x
+            newmap[4] = selected[3]; // update y
+            newmap[5] = selected[4]; // update scaling factor
+            map[selected[0]] = newmap;
+            selected = [];
+        }
     }
-    if (tree.length == 0) {
+
+    if (selected.length == 0) { // no other tree currently selected
         for (var i = 0; i < count; i++) {
             var newmap = map[i];
-            if (pixels[0] == newmap[0] && pixels[0] + pixels[1] + pixels[2] + pixels[3] != 0) { // get the clicked tree's info
-                tree.push(newmap[1]);
-                tree.push(newmap[2]);
-                tree.push(newmap[3]);
+            if (pixels[0] == newmap[0] && pixels[0] + pixels[1] + pixels[2] + pixels[3] != 1020) { // get the clicked tree's info
+                selected.push(i); // id in map
+                selected.push(newmap[2]); // left or right
+                selected.push(newmap[3]); // x
+                selected.push(newmap[4]); // y
+                selected.push(newmap[5]); // scaling factor
+                newmap[1] = 2; // currently selected
+                map[i] = [];
+                map[i] = newmap;
                 break;
             }
         }
@@ -258,91 +299,129 @@ function draw(gl, cylinderProgram) {
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
     gl.enable(gl.DEPTH_TEST);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    var bool = 1;
-    var S_ = S;
     for (var i = 0; i < count; i++) {
         var newmap = map[i];
-        if (tree.length != 0) {
-            if (newmap[2] == tree[1] && newmap[3] == tree[2]) { // check if current tree is clicked
-                bool = 0;
-            }
-        }
-        if (bool == 1) { // if not clicked, draw this tree using normal mode: no transform
-            S = 1.0;
+        if (newmap[1] == 0) { // if current tree has not been clicked, draw this tree using normal mode.
+            var s = newmap[5];
             scale = new Float32Array([
-                S, 0.0, 0.0, 0.0,
-                0.0, S, 0.0, 0.0,
-                0.0, 0.0, S, 0.0,
+                s, 0.0, 0.0, 0.0,
+                0.0, s, 0.0, 0.0,
+                0.0, 0.0, s, 0.0,
                 0.0, 0.0, 0.0, 1.0
             ]);
             gl.useProgram(cylinderProgram);
             gl.uniform1i(cylinderProgram.u_Clicked, 0);
-            initPositions(gl, cylinderProgram, newmap[1]);
-            initColors(gl, cylinderProgram, newmap[1]);
+            initPositions(gl, cylinderProgram, newmap[2]);
+            initColors(gl, cylinderProgram, newmap[2]);
             initLightColor(gl, cylinderProgram);
             initLightDirection(gl, cylinderProgram);
             initMatrix(gl, cylinderProgram, toggle1, toggle2);
-            initTranslation(gl, cylinderProgram, newmap[2], newmap[3], toggle2);
-            initGloss(gl, cylinderProgram, newmap[1]);
+            initTranslation(gl, cylinderProgram, newmap[3], newmap[4], toggle2);
+            initGloss(gl, cylinderProgram, newmap[2]);
             initScale(gl, cylinderProgram);
             var len;
-            if (newmap[1] == 0) {
+            if (newmap[2] == 0) {
                 len = cylinderl.length / 3;
             }
             else {
                 len = cylinderr.length / 3;
             }
             if (toggle3 == 0) { // Flat shading
-                initNormals(gl, cylinderProgram, newmap[1], 0);
+                initNormals(gl, cylinderProgram, newmap[2], 0);
                 gl.drawArrays(gl.TRIANGLES, 0, len);
             }
             else if (toggle3 == 1) { // smooth
-                initNormals(gl, cylinderProgram, newmap[1], 1);
+                initNormals(gl, cylinderProgram, newmap[2], 1);
                 gl.drawArrays(gl.TRIANGLES, 0, len);
             }
             else if (toggle3 == 2) { // wireframe using flat shading normals
-                initNormals(gl, cylinderProgram, newmap[1], 0);
+                initNormals(gl, cylinderProgram, newmap[2], 0);
                 gl.drawArrays(gl.LINES, 0, len);
             }
         }
-        bool = 1;
-    }
-    if (tree.length != 0) { // if there is one clicked tree, draw it in a different way, including transform ops
-        S = S_;
-        scale = new Float32Array([
-            S, 0.0, 0.0, 0.0,
-            0.0, S, 0.0, 0.0,
-            0.0, 0.0, S, 0.0,
-            0.0, 0.0, 0.0, 1.0
-        ]);
-        gl.useProgram(cylinderProgram);
-        gl.uniform1i(cylinderProgram.u_Clicked, 0);
-        initPositions(gl, cylinderProgram, tree[0]);
-        gl.vertexAttrib4f(cylinderProgram.a_Color, 0.0, 1.0, 0.0, 1.0);
-        initLightColor(gl, cylinderProgram);
-        initLightDirection(gl, cylinderProgram);
-        initMatrix(gl, cylinderProgram, toggle1, toggle2);
-        initTranslation(gl, cylinderProgram, tree[1], tree[2], toggle2);
-        gl.uniform1f(cylinderProgram.u_shininessVal, 1.0);
-        initScale(gl, cylinderProgram);
-        var len;
-        if (tree[0] == 0) {
-            len = cylinderl.length / 3;
+        else if (newmap[1] == 1) { // current tree has been clicked before, draw it in green
+            var s = newmap[5];
+            scale = new Float32Array([
+                s, 0.0, 0.0, 0.0,
+                0.0, s, 0.0, 0.0,
+                0.0, 0.0, s, 0.0,
+                0.0, 0.0, 0.0, 1.0
+            ]);
+            gl.useProgram(cylinderProgram);
+            gl.uniform1i(cylinderProgram.u_Clicked, 0);
+            initPositions(gl, cylinderProgram, newmap[2]);
+            gl.vertexAttrib4f(cylinderProgram.a_Color, 0.0, 1.0, 0.0, 1.0);
+            initLightColor(gl, cylinderProgram);
+            initLightDirection(gl, cylinderProgram);
+            initMatrix(gl, cylinderProgram, toggle1, toggle2);
+            initTranslation(gl, cylinderProgram, newmap[3], newmap[4], toggle2);
+            gl.uniform1f(cylinderProgram.u_shininessVal, 1.0);
+            initScale(gl, cylinderProgram);
+            var len;
+            if (newmap[2] == 0) {
+                len = cylinderl.length / 3;
+            }
+            else {
+                len = cylinderr.length / 3;
+            }
+            if (toggle3 == 0) { // Flat shading
+                initNormals(gl, cylinderProgram, newmap[2], 0);
+                gl.drawArrays(gl.TRIANGLES, 0, len);
+            }
+            else if (toggle3 == 1) { // smooth
+                initNormals(gl, cylinderProgram, newmap[2], 1);
+                gl.drawArrays(gl.TRIANGLES, 0, len);
+            }
+            else if (toggle3 == 2) { // wireframe using flat shading normals
+                initNormals(gl, cylinderProgram, newmap[2], 0);
+                gl.drawArrays(gl.LINES, 0, len);
+            }
         }
-        else {
-            len = cylinderr.length / 3;
-        }
-        if (toggle3 == 0) { // Flat shading
-            initNormals(gl, cylinderProgram, tree[0], 0);
-            gl.drawArrays(gl.TRIANGLES, 0, len);
-        }
-        else if (toggle3 == 1) { // smooth
-            initNormals(gl, cylinderProgram, tree[0], 1);
-            gl.drawArrays(gl.TRIANGLES, 0, len);
-        }
-        else if (toggle3 == 2) { // wireframe using flat shading normals
-            initNormals(gl, cylinderProgram, tree[0], 0);
-            gl.drawArrays(gl.LINES, 0, len);
+        else { // current tree is being selected
+            var s = selected[4];
+            scale = new Float32Array([
+                s, 0.0, 0.0, 0.0,
+                0.0, s, 0.0, 0.0,
+                0.0, 0.0, s, 0.0,
+                0.0, 0.0, 0.0, 1.0
+            ]);
+            gl.useProgram(cylinderProgram);
+            gl.uniform1i(cylinderProgram.u_Clicked, 0);
+            initPositions(gl, cylinderProgram, selected[1]);
+            gl.vertexAttrib4f(cylinderProgram.a_Color, 0.0, 1.0, 0.0, 1.0);
+            initLightColor(gl, cylinderProgram);
+            initLightDirection(gl, cylinderProgram);
+            initMatrix(gl, cylinderProgram, toggle1, toggle2);
+            initTranslation(gl, cylinderProgram, selected[2], selected[3], toggle2);
+            gl.uniform1f(cylinderProgram.u_shininessVal, 1.0);
+            initScale(gl, cylinderProgram);
+            var len;
+            if (selected[1] == 0) {
+                len = cylinderl.length / 3;
+            }
+            else {
+                len = cylinderr.length / 3;
+            }
+            if (toggle3 == 0) { // Flat shading
+                initNormals(gl, cylinderProgram, selected[1], 0);
+                gl.drawArrays(gl.TRIANGLES, 0, len);
+            }
+            else if (toggle3 == 1) { // smooth
+                initNormals(gl, cylinderProgram, selected[1], 1);
+                gl.drawArrays(gl.TRIANGLES, 0, len);
+            }
+            else if (toggle3 == 2) { // wireframe using flat shading normals
+                initNormals(gl, cylinderProgram, selected[1], 0);
+                gl.drawArrays(gl.LINES, 0, len);
+            }
+            var newmap = map[selected[0]]; // get the selected tree in map
+            // update selected tree's status
+            map[selected[0]] = [];
+            newmap[1] = 2;
+            newmap[3] = selected[2]; // update x
+            newmap[4] = selected[3]; // update y
+            newmap[5] = selected[4]; // update scaling factor
+            map[selected[0]] = newmap;
         }
     }
 }
@@ -438,22 +517,26 @@ function click(ev, gl, canvas, cylinderProgram) {
     if (ev.button === 0) {
         var newmap = [];
         newmap.push((26 * count++) % 255); // color.r
+        newmap.push(0); // 0 indicates that the point has not been clicked
         newmap.push(0); // left click
         newmap.push(x);
         newmap.push(y);
+        newmap.push(1.0); // Scaling factor
         map.push(newmap);
     }
     else if (ev.button === 2) {
         var newmap = [];
         newmap.push((26 * count++) % 255); // color.r
+        newmap.push(0); // 0 indicates that the point has not been clicked
         newmap.push(1); // right click
         newmap.push(x);
         newmap.push(y);
+        newmap.push(1.0); // Scaling factor
         map.push(newmap);
     }
-    draw(gl, cylinderProgram, 1.0);
+    draw(gl, cylinderProgram);
 }
-
+/*
 function translate(ev, gl, cylinderProgram) {
     gl.useProgram(cylinderProgram);
     var x = ev.clientX; // x coordinate of a mouse pointer
@@ -467,7 +550,7 @@ function translate(ev, gl, cylinderProgram) {
     tree[3] = y;
     draw(gl, cylinderProgram);
 }
-
+*/
 //function Rotate_z()
 
 /* initPositions
