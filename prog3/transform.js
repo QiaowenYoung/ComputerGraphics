@@ -164,6 +164,7 @@ function main() {
             draw(gl, cylinderProgram);
         }
         else if (ev.which == 2) {
+            console.log('middle up')
             var y = ev.clientY; // y coordinate of a mouse pointer
             var rect = ev.target.getBoundingClientRect();
 
@@ -389,7 +390,7 @@ function draw(gl, cylinderProgram) {
                 gl.drawArrays(gl.LINES, 0, len);
             }
         }
-        else if (newmap[1] == 1) { // current tree has been clicked before, draw it in green
+        else if (newmap[1] == 1) { // current tree has been clicked before
             var s = newmap[6];
             scale = new Float32Array([
                 s, 0.0, 0.0, 0.0,
@@ -400,12 +401,14 @@ function draw(gl, cylinderProgram) {
             gl.useProgram(cylinderProgram);
             gl.uniform1i(cylinderProgram.u_Clicked, 0);
             initPositions(gl, cylinderProgram, newmap[2]);
-            gl.vertexAttrib4f(cylinderProgram.a_Color, 0.0, 1.0, 0.0, 1.0);
+            //gl.vertexAttrib4f(cylinderProgram.a_Color, 0.0, 1.0, 0.0, 1.0);
+            initColors(gl, cylinderProgram, newmap[2]);
             initLightColor(gl, cylinderProgram);
             initLightDirection(gl, cylinderProgram);
             initMatrix(gl, cylinderProgram, toggle1, toggle2);
             initTranslation2(gl, cylinderProgram, newmap[3], newmap[4], newmap[5], toggle2);
-            gl.uniform1f(cylinderProgram.u_shininessVal, 1.0);
+            //gl.uniform1f(cylinderProgram.u_shininessVal, 1.0);
+            initGloss(gl, cylinderProgram, newmap[2]);
             initScale(gl, cylinderProgram);
             var len;
             if (newmap[2] == 0) {
@@ -836,7 +839,7 @@ function initTranslation(gl, cylinderProgram, tx, ty, tag) {
 function initTranslation2(gl, cylinderProgram, tx, ty, tz, tag) {
     gl.useProgram(cylinderProgram);
     if (tag == 0) {
-        gl.uniform4f(cylinderProgram.u_Translation, tx, ty, 200 * tz, 0.0);
+        gl.uniform4f(cylinderProgram.u_Translation, tx, ty, tz, 0.0);
     }
     else {
         gl.uniform4f(cylinderProgram.u_Translation, 200 * tx, 200 * ty, 200 * tz, 0.0);
