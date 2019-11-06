@@ -836,7 +836,7 @@ function initTranslation(gl, cylinderProgram, tx, ty, tag) {
 function initTranslation2(gl, cylinderProgram, tx, ty, tz, tag) {
     gl.useProgram(cylinderProgram);
     if (tag == 0) {
-        gl.uniform4f(cylinderProgram.u_Translation, tx, ty, tz, 0.0);
+        gl.uniform4f(cylinderProgram.u_Translation, tx, ty, 200 * tz, 0.0);
     }
     else {
         gl.uniform4f(cylinderProgram.u_Translation, 200 * tx, 200 * ty, 200 * tz, 0.0);
