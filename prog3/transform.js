@@ -143,6 +143,7 @@ function main() {
             offz = y;
         }
         else {
+            console.log(ev.button);
             console.log('plain');
             click(ev, gl, canvas, cylinderProgram);
         }
