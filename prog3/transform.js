@@ -56,8 +56,6 @@ var count = 0; // # of total trees
 var selected = []; // current selected tree
 var offx1, offy1;
 var offx2, offy2;
-var x_axis = [1, 0, 0];
-var z_axis = [0, 0, 1];
 
 // var S = 1.0;
 var scale = new Float32Array([
