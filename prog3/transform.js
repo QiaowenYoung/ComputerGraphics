@@ -16,10 +16,8 @@ var VSHADER_SOURCE =
     'uniform mat4 u_rotateMatrix_x;\n' + // rotate by x axis
     'uniform mat4 u_rotateMatrix_z;\n' + // rotate by z axis
     'void main() {\n' +
-    //'  vec4 v_vertPos4 = u_mvpMatrix * u_scaleMatrix * u_rotateMatrix * a_Position;\n' +
     '  vec4 v_vertPos4 = u_mvpMatrix * u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * a_Position;\n' +
     '  v_vertPos = vec3(v_vertPos4) / v_vertPos4.w;\n' +
-    //'  gl_Position = u_mvpMatrix * u_scaleMatrix * u_rotateMatrix * a_Position + u_Translation;\n' +
     '  gl_Position = u_mvpMatrix * u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * a_Position + u_Translation;\n' +
     // Make the length of the normal 1.0
     '  vec3 normal = normalize((u_rotateMatrix_x * u_rotateMatrix_z * vec4(a_Normal,0.0)).xyz);\n' +
@@ -56,8 +54,8 @@ var count = 0; // # of total trees
 var selected = []; // current selected tree
 var offx1, offy1;
 var offx2, offy2;
+var offz;
 
-// var S = 1.0;
 var scale = new Float32Array([
     1.0, 0.0, 0.0, 0.0,
     0.0, 1.0, 0.0, 0.0,
@@ -156,6 +154,14 @@ function main() {
             offx2 = x;
             offy2 = y;
         }
+        else if (ev.which == 2) { // middle clickdown
+            console.log('middle click');
+            var y = ev.clientY; // y coordinate of a mouse pointer
+            var rect = ev.target.getBoundingClientRect();
+
+            y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
+            offz = y;
+        }
         else if (ev.shiftKey == 1) {
             redraw(ev, gl, cylinderProgram);
         }
@@ -189,24 +195,34 @@ function main() {
             offy2 = y - offy2;
             if (Math.abs(offx2) < Math.abs(offy2)) { // rotate by x
                 if (selected.length != 0) {
-                    if(offy2 < 0){
-                        selected[5] = selected[5] + Math.PI / 4;
+                    if (offy2 < 0) {
+                        selected[6] = selected[6] + Math.PI / 4;
                     }
                     else {
-                        selected[5] = selected[5] - Math.PI / 4;
+                        selected[6] = selected[6] - Math.PI / 4;
                     }
                 }
             }
             else { // rotate by z
                 if (selected.length != 0) {
-                    if(offx2 < 0){
-                        selected[6] = selected[6] - Math.PI / 4;
+                    if (offx2 < 0) {
+                        selected[7] = selected[7] - Math.PI / 4;
                     }
                     else {
-                        selected[6] = selected[6] + Math.PI / 4;
+                        selected[7] = selected[7] + Math.PI / 4;
                     }
                 }
             }
+            draw(gl, cylinderProgram);
+        }
+        else if (ev.which == 2) {
+            console.log('middle up');
+            var y = ev.clientY; // y coordinate of a mouse pointer
+            var rect = ev.target.getBoundingClientRect();
+
+            y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
+            offz = y - offz;
+            selected[4] += offz;
             draw(gl, cylinderProgram);
         }
     }
@@ -214,7 +230,7 @@ function main() {
     document.onmousewheel = function (ev) {
         var d = ev.wheelDelta;
         if (selected.length != 0) {
-            selected[4] = selected[4] + selected[4] * d / 5000;
+            selected[5] = selected[5] + selected[5] * d / 5000;
         }
         draw(gl, cylinderProgram);
     };
@@ -303,7 +319,7 @@ function redraw(ev, gl, cylinderProgram) {
         // redraw all the trees using different colors
         var newmap = map[i];
         var color = newmap[0] / 255.0;
-        var s = newmap[5];
+        var s = newmap[6];
         scale = new Float32Array([
             s, 0.0, 0.0, 0.0,
             0.0, s, 0.0, 0.0,
@@ -311,8 +327,8 @@ function redraw(ev, gl, cylinderProgram) {
             0.0, 0.0, 0.0, 1.0
         ]);
 
-        var c_x = Math.cos(newmap[6]);
-        var s_x = Math.sin(newmap[6]);
+        var c_x = Math.cos(newmap[7]);
+        var s_x = Math.sin(newmap[7]);
         rotate_x = new Float32Array([
             1.0, 0.0, 0.0, 0.0,
             0.0, c_x, s_x, 0.0,
@@ -320,8 +336,8 @@ function redraw(ev, gl, cylinderProgram) {
             0.0, 0.0, 0.0, 1.0
         ]);
 
-        var c_z = Math.cos(newmap[7] * Math.PI);
-        var s_z = Math.sin(newmap[7] * Math.PI);
+        var c_z = Math.cos(newmap[8]);
+        var s_z = Math.sin(newmap[8]);
         rotate_z = new Float32Array([
             c_z, s_z, 0.0, 0.0,
             -s_z, c_z, 0.0, 0.0,
@@ -335,7 +351,7 @@ function redraw(ev, gl, cylinderProgram) {
         initLightColor(gl, cylinderProgram);
         initLightDirection(gl, cylinderProgram);
         initMatrix(gl, cylinderProgram, toggle1, toggle2);
-        initTranslation(gl, cylinderProgram, newmap[3], newmap[4], toggle2);
+        initTranslation2(gl, cylinderProgram, newmap[3], newmap[4], newmap[5], toggle2);
         initGloss(gl, cylinderProgram, newmap[2]);
         initNormals(gl, cylinderProgram, newmap[2], 0);
         gl.uniform1i(cylinderProgram.u_Clicked, 1);
@@ -374,9 +390,10 @@ function redraw(ev, gl, cylinderProgram) {
             newmap[1] = 0;
             newmap[3] = selected[2]; // update x
             newmap[4] = selected[3]; // update y
-            newmap[5] = selected[4]; // update scaling factor
-            newmap[6] = selected[5]; // update rotational angle by x axis
-            newmap[7] = selected[6]; // update rotational angle by z axis
+            newmap[5] = selected[4]; // update z
+            newmap[6] = selected[5]; // update scaling factor
+            newmap[7] = selected[6]; // update rotational angle by x axis
+            newmap[8] = selected[7]; // update rotational angle by z axis
             map[selected[0]] = newmap;
             selected = [];
         }
@@ -390,9 +407,10 @@ function redraw(ev, gl, cylinderProgram) {
                 selected.push(newmap[2]); // left or right
                 selected.push(newmap[3]); // x
                 selected.push(newmap[4]); // y
-                selected.push(newmap[5]); // scaling factor
-                selected.push(newmap[6]); // rotational angle by x axis
-                selected.push(newmap[7]); // rotational angle by z axis
+                selected.push(newmap[5]); // z
+                selected.push(newmap[6]); // scaling factor
+                selected.push(newmap[7]); // rotational angle by x axis
+                selected.push(newmap[8]); // rotational angle by z axis
                 newmap[1] = 1; // currently selected
                 map[i] = [];
                 map[i] = newmap;
@@ -410,7 +428,7 @@ function draw(gl, cylinderProgram) {
     for (var i = 0; i < count; i++) {
         var newmap = map[i];
         if (newmap[1] == 0) {
-            var s = newmap[5];
+            var s = newmap[6];
             scale = new Float32Array([
                 s, 0.0, 0.0, 0.0,
                 0.0, s, 0.0, 0.0,
@@ -418,8 +436,8 @@ function draw(gl, cylinderProgram) {
                 0.0, 0.0, 0.0, 1.0
             ]);
 
-            var c_x = Math.cos(newmap[6]);
-            var s_x = Math.sin(newmap[6]);
+            var c_x = Math.cos(newmap[7]);
+            var s_x = Math.sin(newmap[7]);
             rotate_x = new Float32Array([
                 1.0, 0.0, 0.0, 0.0,
                 0.0, c_x, s_x, 0.0,
@@ -427,8 +445,8 @@ function draw(gl, cylinderProgram) {
                 0.0, 0.0, 0.0, 1.0
             ]);
 
-            var c_z = Math.cos(newmap[7]);
-            var s_z = Math.sin(newmap[7]);
+            var c_z = Math.cos(newmap[8]);
+            var s_z = Math.sin(newmap[8]);
             rotate_z = new Float32Array([
                 c_z, s_z, 0.0, 0.0,
                 -s_z, c_z, 0.0, 0.0,
@@ -443,7 +461,7 @@ function draw(gl, cylinderProgram) {
             initLightColor(gl, cylinderProgram);
             initLightDirection(gl, cylinderProgram);
             initMatrix(gl, cylinderProgram, toggle1, toggle2);
-            initTranslation(gl, cylinderProgram, newmap[3], newmap[4], toggle2);
+            initTranslation2(gl, cylinderProgram, newmap[3], newmap[4], newmap[5], toggle2);
             initGloss(gl, cylinderProgram, newmap[2]);
             initScale(gl, cylinderProgram);
             initRotate(gl, cylinderProgram);
@@ -468,24 +486,24 @@ function draw(gl, cylinderProgram) {
             }
         }
         else { // current tree is being selected
-            var s = selected[4];
+            var s = selected[5];
             scale = new Float32Array([
                 s, 0.0, 0.0, 0.0,
                 0.0, s, 0.0, 0.0,
                 0.0, 0.0, s, 0.0,
                 0.0, 0.0, 0.0, 1.0
             ]);
-            var c_x = Math.cos(selected[5]);
-            var s_x = Math.sin(selected[5]);
+            var c_x = Math.cos(selected[6]);
+            var s_x = Math.sin(selected[6]);
             rotate_x = new Float32Array([
                 1.0, 0.0, 0.0, 0.0,
                 0.0, c_x, s_x, 0.0,
                 0.0, -s_x, c_x, 0.0,
                 0.0, 0.0, 0.0, 1.0
             ]);
-            
-            var c_z = Math.cos(selected[6]);
-            var s_z = Math.sin(selected[6]);
+
+            var c_z = Math.cos(selected[7]);
+            var s_z = Math.sin(selected[7]);
             rotate_z = new Float32Array([
                 c_z, s_z, 0.0, 0.0,
                 -s_z, c_z, 0.0, 0.0,
@@ -500,7 +518,7 @@ function draw(gl, cylinderProgram) {
             initLightColor(gl, cylinderProgram);
             initLightDirection(gl, cylinderProgram);
             initMatrix(gl, cylinderProgram, toggle1, toggle2);
-            initTranslation(gl, cylinderProgram, selected[2], selected[3], toggle2);
+            initTranslation2(gl, cylinderProgram, selected[2], selected[3], selected[4], toggle2);
             gl.uniform1f(cylinderProgram.u_shininessVal, 1.0);
             initScale(gl, cylinderProgram);
             initRotate(gl, cylinderProgram)
@@ -526,12 +544,13 @@ function draw(gl, cylinderProgram) {
             var newmap = map[selected[0]]; // get the selected tree in map
             // update selected tree's status
             map[selected[0]] = [];
-            newmap[1] = 2;
+            newmap[1] = 1;
             newmap[3] = selected[2]; // update x
             newmap[4] = selected[3]; // update y
-            newmap[5] = selected[4]; // update scaling factor
-            newmap[6] = selected[5]; // update rotational angle by x axis
-            newmap[7] = selected[6]; // update rotational angle by z axis
+            newmap[5] = selected[4]; // update z
+            newmap[6] = selected[5]; // update scaling factor
+            newmap[7] = selected[6]; // update rotational angle by x axis
+            newmap[8] = selected[7]; // update rotational angle by z axis
             map[selected[0]] = newmap;
         }
     }
@@ -630,8 +649,9 @@ function click(ev, gl, canvas, cylinderProgram) {
         newmap.push((26 * count++) % 255); // color.r
         newmap.push(0); // 0 indicates that the point has not been clicked
         newmap.push(0); // left click
-        newmap.push(x);
-        newmap.push(y);
+        newmap.push(x); // x
+        newmap.push(y); // y
+        newmap.push(0.0); // z
         newmap.push(1.0); // Scaling factor
         newmap.push(0.0); // rotational angle by x axis
         newmap.push(0.0); // rotational angle by z axis
@@ -642,8 +662,9 @@ function click(ev, gl, canvas, cylinderProgram) {
         newmap.push((26 * count++) % 255); // color.r
         newmap.push(0); // 0 indicates that the point has not been clicked
         newmap.push(1); // right click
-        newmap.push(x);
-        newmap.push(y);
+        newmap.push(x); // x
+        newmap.push(y); // y
+        newmap.push(0.7); // z
         newmap.push(1.0); // Scaling factor
         newmap.push(0.0); // rotational angle by x axis
         newmap.push(0.0); // rotational angle by z axis
@@ -838,7 +859,7 @@ function initMatrix(gl, cylinderProgram, tag1, tag2) {
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
         else {
-            mvpMatrix.setPerspective(90, 1, 100, 1000);
+            mvpMatrix.setPerspective(90, 1, 10, 1000);
             mvpMatrix.lookAt(0, 0, 200, 0, 0, 0, 0, 1, 0);
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
@@ -846,12 +867,12 @@ function initMatrix(gl, cylinderProgram, tag1, tag2) {
     else { // Side
         if (tag2 == 0) { //Ortho
             mvpMatrix.setOrtho(-200, 200, -200, 200, -1000, 1000);
-            mvpMatrix.lookAt(0, -200, 75, 0, 0, 0, 0, 1, 0);
+            mvpMatrix.lookAt(200, 200, 0, 0, 0, 0, 0, 0, 1);
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
         else {
-            mvpMatrix.setPerspective(90, 1, 100, 1000);
-            mvpMatrix.lookAt(0, -200, 75, 0, 0, 0, 0, 1, 0);
+            mvpMatrix.setPerspective(90, 1, 10, 1000);
+            mvpMatrix.lookAt(200, 200, 0, 0, 0, 0, 0, 0, 1);
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
     }
