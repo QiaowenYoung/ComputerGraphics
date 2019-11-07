@@ -12,16 +12,17 @@ var VSHADER_SOURCE =
     'varying vec3 v_vertPos;\n' + // View Direction
     'uniform float u_shininessVal;\n' + // 20 or 5
     'uniform bool u_Clicked;\n' + // Mouse is pressed
-    //'uniform mat4 u_rotateMatrix;\n' + // rotate
     'uniform mat4 u_scaleMatrix;\n' + // scale
+    'uniform mat4 u_rotateMatrix_x;\n' + // rotate by x axis
+    'uniform mat4 u_rotateMatrix_z;\n' + // rotate by z axis
     'void main() {\n' +
     //'  vec4 v_vertPos4 = u_mvpMatrix * u_scaleMatrix * u_rotateMatrix * a_Position;\n' +
-    '  vec4 v_vertPos4 = u_mvpMatrix * u_scaleMatrix * a_Position;\n' +
+    '  vec4 v_vertPos4 = u_mvpMatrix * u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * a_Position;\n' +
     '  v_vertPos = vec3(v_vertPos4) / v_vertPos4.w;\n' +
     //'  gl_Position = u_mvpMatrix * u_scaleMatrix * u_rotateMatrix * a_Position + u_Translation;\n' +
-    '  gl_Position = u_mvpMatrix * u_scaleMatrix * a_Position + u_Translation;\n' +
+    '  gl_Position = u_mvpMatrix * u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * a_Position + u_Translation;\n' +
     // Make the length of the normal 1.0
-    '  vec3 normal = normalize(a_Normal);\n' +
+    '  vec3 normal = normalize((u_rotateMatrix_x * u_rotateMatrix_z * vec4(a_Normal,0.0)).xyz);\n' +
     // Dot product of the light direction and the orientation of a surface (the normal)
     '  float nDotL = max(dot(u_LightDirection, normal), 0.0);\n' +
     // Calculate the color due to diffuse reflection
@@ -53,10 +54,27 @@ var FSHADER_SOURCE =
 var map = []; // each element contains a point
 var count = 0; // # of total trees
 var selected = []; // current selected tree
-var offx, offy, offz;
+var offx1, offy1;
+var offx2, offy2;
+var x_axis = [1, 0, 0];
+var z_axis = [0, 0, 1];
 
 // var S = 1.0;
 var scale = new Float32Array([
+    1.0, 0.0, 0.0, 0.0,
+    0.0, 1.0, 0.0, 0.0,
+    0.0, 0.0, 1.0, 0.0,
+    0.0, 0.0, 0.0, 1.0
+]);
+
+var rotate_x = new Float32Array([
+    1.0, 0.0, 0.0, 0.0,
+    0.0, 1.0, 0.0, 0.0,
+    0.0, 0.0, 1.0, 0.0,
+    0.0, 0.0, 0.0, 1.0
+]);
+
+var rotate_z = new Float32Array([
     1.0, 0.0, 0.0, 0.0,
     0.0, 1.0, 0.0, 0.0,
     0.0, 0.0, 1.0, 0.0,
@@ -99,14 +117,15 @@ function main() {
     cylinderProgram.u_LightDirection = gl.getUniformLocation(cylinderProgram, 'u_LightDirection');
     cylinderProgram.u_shininessVal = gl.getUniformLocation(cylinderProgram, 'u_shininessVal');
     cylinderProgram.u_Clicked = gl.getUniformLocation(cylinderProgram, 'u_Clicked');
-    //cylinderProgram.u_rotateMatrix = gl.getUniformLocation(cylinderProgram, 'u_rotateMatrix');
+    cylinderProgram.u_rotateMatrix_x = gl.getUniformLocation(cylinderProgram, 'u_rotateMatrix_x');
+    cylinderProgram.u_rotateMatrix_z = gl.getUniformLocation(cylinderProgram, 'u_rotateMatrix_z');
     cylinderProgram.u_scaleMatrix = gl.getUniformLocation(cylinderProgram, 'u_scaleMatrix');
 
     if (cylinderProgram.a_Position < 0 || cylinderProgram.a_Color < 0 || cylinderProgram.a_Color_2 < 0 ||
         cylinderProgram.a_Normal < 0 || cylinderProgram.u_ViewMatrix < 0 || cylinderProgram.u_ProjMatrix < 0 ||
         cylinderProgram.u_Translation < 0 || cylinderProgram.u_LightColor < 0 || cylinderProgram.u_LightDirection < 0 ||
-        cylinderProgram.u_shininessVal < 0 || cylinderProgram.u_Clicked < 0 || //cylinderProgram.u_rotateMatrix < 0 ||
-        cylinderProgram.u_scaleMatrix < 0) {
+        cylinderProgram.u_shininessVal < 0 || cylinderProgram.u_Clicked < 0 || cylinderProgram.u_rotateMatrix_x < 0 ||
+        cylinderProgram.u_rotateMatrix_z < 0 || cylinderProgram.u_scaleMatrix < 0) {
         console.log('Failed to locate variables for cylinder');
         return -1;
     }
@@ -119,40 +138,77 @@ function main() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     canvas.onmousedown = function (ev) {
-        if (ev.ctrlKey == 1) {
-            console.log('ctrl');
+        if (ev.ctrlKey == 1 && ev.button == 0) { // ctrl + left click
             var x = ev.clientX; // x coordinate of a mouse pointer
             var y = ev.clientY; // y coordinate of a mouse pointer
             var rect = ev.target.getBoundingClientRect();
 
             x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
             y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
-            offx = x;
-            offy = y;
+            offx1 = x;
+            offy1 = y;
+        }
+        else if (ev.ctrlKey == 1 && ev.button == 2) { // ctrl + right click
+            var x = ev.clientX; // x coordinate of a mouse pointer
+            var y = ev.clientY; // y coordinate of a mouse pointer
+            var rect = ev.target.getBoundingClientRect();
+
+            x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
+            y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
+            offx2 = x;
+            offy2 = y;
         }
         else if (ev.shiftKey == 1) {
-            console.log('shift');
             redraw(ev, gl, cylinderProgram);
         }
         else {
-            console.log(ev.button);
-            console.log('plain');
             click(ev, gl, canvas, cylinderProgram);
         }
     };
 
     canvas.onmouseup = function (ev) {
-        if(ev.ctrlKey == 1) {
+        if (ev.ctrlKey == 1 && ev.button == 0) {
             var x = ev.clientX; // x coordinate of a mouse pointer
             var y = ev.clientY; // y coordinate of a mouse pointer
             var rect = ev.target.getBoundingClientRect();
 
             x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
             y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
-            offx = x - offx;
-            offy = y - offy;
-            selected[2] += offx;
-            selected[3] += offy;
+            offx1 = x - offx1;
+            offy1 = y - offy1;
+            selected[2] += offx1;
+            selected[3] += offy1;
+            draw(gl, cylinderProgram);
+        }
+        else if (ev.ctrlKey == 1 && ev.button == 2) {
+            var x = ev.clientX; // x coordinate of a mouse pointer
+            var y = ev.clientY; // y coordinate of a mouse pointer
+            var rect = ev.target.getBoundingClientRect();
+
+            x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
+            y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
+            offx2 = x - offx2;
+            offy2 = y - offy2;
+            if (Math.abs(offx2) < Math.abs(offy2)) { // rotate by x
+                if (selected.length != 0) {
+                    if(offx2 < 0){
+                        selected[5] = selected[5] - Math.PI / 4;
+                    }
+                    else {
+                        selected[5] = selected[5] + Math.PI / 4;
+                    }
+                }
+            }
+            else { // rotate by z
+                if (selected.length != 0) {
+                    if(offy2 < 0){
+                        selected[6] = selected[6] - Math.PI / 4;
+                    }
+                    else {
+                        selected[6] = selected[6] + Math.PI / 4;
+                    }
+                }
+            }
             draw(gl, cylinderProgram);
         }
     }
@@ -256,6 +312,25 @@ function redraw(ev, gl, cylinderProgram) {
             0.0, 0.0, s, 0.0,
             0.0, 0.0, 0.0, 1.0
         ]);
+
+        var c_x = Math.cos(newmap[6]);
+        var s_x = Math.sin(newmap[6]);
+        rotate_x = new Float32Array([
+            1.0, 0.0, 0.0, 0.0,
+            0.0, c_x, s_x, 0.0,
+            0.0, -s_x, c_x, 0.0,
+            0.0, 0.0, 0.0, 1.0
+        ]);
+
+        var c_z = Math.cos(newmap[7] * Math.PI);
+        var s_z = Math.sin(newmap[7] * Math.PI);
+        rotate_z = new Float32Array([
+            c_z, s_z, 0.0, 0.0,
+            -s_z, c_z, 0.0, 0.0,
+            0.0, 0.0, 1.0, 0.0,
+            0.0, 0.0, 0.0, 1.0
+        ]);
+
         gl.useProgram(cylinderProgram);
         initPositions(gl, cylinderProgram, newmap[2]);
         initColors(gl, cylinderProgram, newmap[2]);
@@ -268,6 +343,7 @@ function redraw(ev, gl, cylinderProgram) {
         gl.uniform1i(cylinderProgram.u_Clicked, 1);
         gl.vertexAttrib4f(cylinderProgram.a_Color_2, color, 0.0, 0.0, 1.0);
         initScale(gl, cylinderProgram);
+        initRotate(gl, cylinderProgram);
         var len;
         if (newmap[2] == 0) {
             len = cylinderl.length / 3;
@@ -291,17 +367,18 @@ function redraw(ev, gl, cylinderProgram) {
 
     var pixels = new Uint8Array(4); // Array for storing the pixel value
     gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
-    console.log(pixels);
     if (pixels[0] + pixels[1] + pixels[2] + pixels[3] == 1020) {
         // click on blank, need to check current tree and store its status back to map
         if (selected.length != 0) {
             var newmap = map[selected[0]]; // get the selected tree in map
             // update selected tree's status
             map[selected[0]] = [];
-            newmap[1] = 1;
+            newmap[1] = 0;
             newmap[3] = selected[2]; // update x
             newmap[4] = selected[3]; // update y
             newmap[5] = selected[4]; // update scaling factor
+            newmap[6] = selected[5]; // update rotational angle by x axis
+            newmap[7] = selected[6]; // update rotational angle by z axis
             map[selected[0]] = newmap;
             selected = [];
         }
@@ -316,7 +393,9 @@ function redraw(ev, gl, cylinderProgram) {
                 selected.push(newmap[3]); // x
                 selected.push(newmap[4]); // y
                 selected.push(newmap[5]); // scaling factor
-                newmap[1] = 2; // currently selected
+                selected.push(newmap[6]); // rotational angle by x axis
+                selected.push(newmap[7]); // rotational angle by z axis
+                newmap[1] = 1; // currently selected
                 map[i] = [];
                 map[i] = newmap;
                 break;
@@ -332,7 +411,7 @@ function draw(gl, cylinderProgram) {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     for (var i = 0; i < count; i++) {
         var newmap = map[i];
-        if (newmap[1] == 0 || newmap[1] == 1) { // if current tree has not been clicked, draw this tree using normal mode.
+        if (newmap[1] == 0) {
             var s = newmap[5];
             scale = new Float32Array([
                 s, 0.0, 0.0, 0.0,
@@ -340,6 +419,25 @@ function draw(gl, cylinderProgram) {
                 0.0, 0.0, s, 0.0,
                 0.0, 0.0, 0.0, 1.0
             ]);
+
+            var c_x = Math.cos(newmap[6]);
+            var s_x = Math.sin(newmap[6]);
+            rotate_x = new Float32Array([
+                1.0, 0.0, 0.0, 0.0,
+                0.0, c_x, s_x, 0.0,
+                0.0, -s_x, c_x, 0.0,
+                0.0, 0.0, 0.0, 1.0
+            ]);
+
+            var c_z = Math.cos(newmap[7]);
+            var s_z = Math.sin(newmap[7]);
+            rotate_z = new Float32Array([
+                c_z, s_z, 0.0, 0.0,
+                -s_z, c_z, 0.0, 0.0,
+                0.0, 0.0, 1.0, 0.0,
+                0.0, 0.0, 0.0, 1.0
+            ]);
+
             gl.useProgram(cylinderProgram);
             gl.uniform1i(cylinderProgram.u_Clicked, 0);
             initPositions(gl, cylinderProgram, newmap[2]);
@@ -350,6 +448,7 @@ function draw(gl, cylinderProgram) {
             initTranslation(gl, cylinderProgram, newmap[3], newmap[4], toggle2);
             initGloss(gl, cylinderProgram, newmap[2]);
             initScale(gl, cylinderProgram);
+            initRotate(gl, cylinderProgram);
             var len;
             if (newmap[2] == 0) {
                 len = cylinderl.length / 3;
@@ -378,6 +477,24 @@ function draw(gl, cylinderProgram) {
                 0.0, 0.0, s, 0.0,
                 0.0, 0.0, 0.0, 1.0
             ]);
+            var c_x = Math.cos(selected[5]);
+            var s_x = Math.sin(selected[5]);
+            rotate_x = new Float32Array([
+                1.0, 0.0, 0.0, 0.0,
+                0.0, c_x, s_x, 0.0,
+                0.0, -s_x, c_x, 0.0,
+                0.0, 0.0, 0.0, 1.0
+            ]);
+            
+            var c_z = Math.cos(selected[6]);
+            var s_z = Math.sin(selected[6]);
+            rotate_z = new Float32Array([
+                c_z, s_z, 0.0, 0.0,
+                -s_z, c_z, 0.0, 0.0,
+                0.0, 0.0, 1.0, 0.0,
+                0.0, 0.0, 0.0, 1.0
+            ]);
+
             gl.useProgram(cylinderProgram);
             gl.uniform1i(cylinderProgram.u_Clicked, 0);
             initPositions(gl, cylinderProgram, selected[1]);
@@ -388,6 +505,7 @@ function draw(gl, cylinderProgram) {
             initTranslation(gl, cylinderProgram, selected[2], selected[3], toggle2);
             gl.uniform1f(cylinderProgram.u_shininessVal, 1.0);
             initScale(gl, cylinderProgram);
+            initRotate(gl, cylinderProgram)
             var len;
             if (selected[1] == 0) {
                 len = cylinderl.length / 3;
@@ -414,6 +532,8 @@ function draw(gl, cylinderProgram) {
             newmap[3] = selected[2]; // update x
             newmap[4] = selected[3]; // update y
             newmap[5] = selected[4]; // update scaling factor
+            newmap[6] = selected[5]; // update rotational angle by x axis
+            newmap[7] = selected[6]; // update rotational angle by z axis
             map[selected[0]] = newmap;
         }
     }
@@ -515,6 +635,8 @@ function click(ev, gl, canvas, cylinderProgram) {
         newmap.push(x);
         newmap.push(y);
         newmap.push(1.0); // Scaling factor
+        newmap.push(0.0); // rotational angle by x axis
+        newmap.push(0.0); // rotational angle by z axis
         map.push(newmap);
     }
     else if (ev.button === 2) {
@@ -525,6 +647,8 @@ function click(ev, gl, canvas, cylinderProgram) {
         newmap.push(x);
         newmap.push(y);
         newmap.push(1.0); // Scaling factor
+        newmap.push(0.0); // rotational angle by x axis
+        newmap.push(0.0); // rotational angle by z axis
         map.push(newmap);
     }
     draw(gl, cylinderProgram);
@@ -798,12 +922,13 @@ function initGloss(gl, cylinderProgram, tag) {
     }
 }
 
-//function initRotate(gl, cylinderProgram) {
-//    gl.useProgram(cylinderProgram);
-//    gl.uniformMatrix4fv(cylinderProgram.u_rotateMatrix, false, rotate);
-//}
-
 function initScale(gl, cylinderProgram) {
     gl.useProgram(cylinderProgram);
     gl.uniformMatrix4fv(cylinderProgram.u_scaleMatrix, false, scale);
+}
+
+function initRotate(gl, cylinderProgram) {
+    gl.useProgram(cylinderProgram);
+    gl.uniformMatrix4fv(cylinderProgram.u_rotateMatrix_x, false, rotate_x);
+    gl.uniformMatrix4fv(cylinderProgram.u_rotateMatrix_z, false, rotate_z);
 }
