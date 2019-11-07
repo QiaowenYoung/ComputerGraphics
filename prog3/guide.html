@@ -26,10 +26,7 @@
         html,
         body {
             width: 100%;
-            height: 100%;
-        }
-
-        body {
+            height: 110%;
             background-image: linear-gradient(to top, lightblue, white);
         }
 
@@ -69,21 +66,31 @@
             Click on the second button to load a scene from file. Then click "submit" to see your previous work.
         </p>
         <p>
-            Do a shift+click on a tree to select it and change its color to green. The glosiness is also changed.
+            Do a shift+click on a tree to select it. You can only select one tree at a time. When you want to select another one, 
+            you need to do a shift+click on the canvas blank, then do a shift+click on another tree. 
+            After a selection, you have the following options:
+        </p>
+        <p> 1. Translation: push the "Ctrl" key down, then
+            the displacement between a left mouse down event and the left mouse up event indicates the amount of movement to be applied to the picked object. 
+            Then you can release the "Ctrl" key.
+            Translation is only on xy 2D plane.
+            </p>
+        <p>
+            2. Scaling: scrolling up your scrolling wheel will increase the object, while scrolling down will decrease the object.
+        </p>
+        <p>
+            3. Rotation: push the "Ctrl" key down. 
+            A right mouse down with horizontal motion until a mouse up event indicates a rotation about the z-axis of the object. 
+            A right mouse down with a vertical motion until a mouse up event indicates a rotation about the x-axis of the object. 
+            Then you can release the "Ctrl" key.
         </p>
         <h3>Thoughts</h3>
         <p>I calculate all the coordinates for a whole tree and it's normals and store them in the ./point.js. 
             There are 6 arrays in the ./points.js, namely cylinderl (the tree created by a left click), 
             cylinderr (by a right click), nl (normals for a left click tree under smooth shading), 
             nr (normals for a right one under smooth shading), nnl (normals for a left click under flat shading), 
-            nnr (normals for a right click under flat shading).
-        </p>
-        <p>
-            When do the picking part, I firstly re-draw all the trees with different colors. This is done by changing
-            the rgba.r's value. Then, I read the pixel's rgba and compares the r value with all the trees' r values. If 
-            there is one tree that satisfies the match, store the tree's left/right and xy coordinates.
-        </p>
-        <p>The algorithm for the trees calculation is in ./algorithm.js. It has detailed documentation for you to check.</p>
+            nnr (normals for a right click under flat shading). The algorithm for the trees calculation is in ./algorithm.js. 
+            It has detailed documentation for you to check.</p>
         <a href="features.html">Homepage |</a>
         <a href="driver.html">| My canvas</a>
     </div>

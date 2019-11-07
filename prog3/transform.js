@@ -191,17 +191,17 @@ function main() {
             offy2 = y - offy2;
             if (Math.abs(offx2) < Math.abs(offy2)) { // rotate by x
                 if (selected.length != 0) {
-                    if(offx2 < 0){
-                        selected[5] = selected[5] - Math.PI / 4;
+                    if(offy2 < 0){
+                        selected[5] = selected[5] + Math.PI / 4;
                     }
                     else {
-                        selected[5] = selected[5] + Math.PI / 4;
+                        selected[5] = selected[5] - Math.PI / 4;
                     }
                 }
             }
             else { // rotate by z
                 if (selected.length != 0) {
-                    if(offy2 < 0){
+                    if(offx2 < 0){
                         selected[6] = selected[6] - Math.PI / 4;
                     }
                     else {
@@ -653,24 +653,6 @@ function click(ev, gl, canvas, cylinderProgram) {
     }
     draw(gl, cylinderProgram);
 }
-
-
-/*
-function translate(ev, gl, cylinderProgram) {
-    gl.useProgram(cylinderProgram);
-    var x = ev.clientX; // x coordinate of a mouse pointer
-    var y = ev.clientY; // y coordinate of a mouse pointer
-    var rect = ev.target.getBoundingClientRect();
-
-    x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
-    y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
-
-    tree[2] = x;
-    tree[3] = y;
-    draw(gl, cylinderProgram);
-}
-*/
-//function Rotate_z()
 
 /* initPositions
  * input:
