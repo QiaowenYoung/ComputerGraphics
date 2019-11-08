@@ -66,23 +66,24 @@
             Click on the second button to load a scene from file. Then click "submit" to see your previous work.
         </p>
         <p>
-            Do a shift+click on a tree to select it. You can only select one tree at a time. When you want to select another one, 
-            you need to do a shift+click on the canvas blank, then do a shift+click on another tree. 
+            Click on a visible tree to select it. You can only select one tree at a time. When you want to select another one, 
+            you need to do a click on the canvas blank, then click on another tree. 
             After a selection, you have the following options:
         </p>
-        <p> 1. Translation: push the "Ctrl" key down, then
-            the displacement between a left mouse down event and the left mouse up event indicates the amount of movement to be applied to the picked object. 
-            Then you can release the "Ctrl" key.
-            Translation is only on xy 2D plane.
+        <p> 1. Translation: the displacement between a left mouse down event and the left mouse up event 
+            indicates the amount of movement to be applied to the picked object. 
+            BONUS: The 2D translation is REALTIME, meaning that you can see the tree going with your mousemove. 
+            The movement in the z direction can be done clicking on the middle button of a mouse and drag it. 
+            You may see that the tree suddenly disappears, cause it flies off the range of your view. 
+            You can drag your mouse at a low rate to see how it disappears part by part.
             </p>
         <p>
             2. Scaling: scrolling up your scrolling wheel will increase the object, while scrolling down will decrease the object.
         </p>
         <p>
-            3. Rotation: push the "Ctrl" key down. 
-            A right mouse down with horizontal motion until a mouse up event indicates a rotation about the z-axis of the object. 
+            3. Rotation: A right mouse down with horizontal motion until a mouse up event indicates a rotation about the z-axis of the object. 
             A right mouse down with a vertical motion until a mouse up event indicates a rotation about the x-axis of the object. 
-            Then you can release the "Ctrl" key.
+            BONUS: the rotation is also REALTIME.
         </p>
         <h3>Thoughts</h3>
         <p>I calculate all the coordinates for a whole tree and it's normals and store them in the ./point.js. 

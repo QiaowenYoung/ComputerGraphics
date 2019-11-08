@@ -174,7 +174,6 @@ function main() {
             isUp = 1;
         }
         else {
-            console.log('left click');
             redraw(ev, gl, canvas, cylinderProgram);
         }
     };
