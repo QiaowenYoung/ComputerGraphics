@@ -54,7 +54,7 @@ var count = 0; // # of total trees
 var selected = []; // current selected tree
 var offx1, offy1;
 var offx2, offy2;
-var x0, y0, y1;
+var x0, y0;
 var isMoving = 0;
 var isRotating = 0;
 var isUp = 0;
@@ -295,7 +295,8 @@ function main() {
     document.onmousewheel = function (ev) {
         var d = ev.wheelDelta;
         if (selected.length != 0) {
-            selected[5] = selected[5] + selected[5] * d / 5000;
+            console.log('scaling');
+            selected[5] = selected[5] - selected[5] * d / 5000;
         }
         draw(gl, cylinderProgram);
     };
@@ -416,7 +417,7 @@ function redraw(ev, gl, canvas, cylinderProgram) {
         initLightColor(gl, cylinderProgram);
         initLightDirection(gl, cylinderProgram);
         initMatrix(gl, cylinderProgram, toggle1, toggle2);
-        initTranslation2(gl, cylinderProgram, newmap[3], newmap[4], newmap[5], toggle2);
+        initTranslation(gl, cylinderProgram, newmap[3], newmap[4], newmap[5], toggle2);
         initGloss(gl, cylinderProgram, newmap[2]);
         initNormals(gl, cylinderProgram, newmap[2], 0);
         gl.uniform1i(cylinderProgram.u_Clicked, 1);
@@ -531,7 +532,7 @@ function draw(gl, cylinderProgram) {
             initLightColor(gl, cylinderProgram);
             initLightDirection(gl, cylinderProgram);
             initMatrix(gl, cylinderProgram, toggle1, toggle2);
-            initTranslation2(gl, cylinderProgram, newmap[3], newmap[4], newmap[5], toggle2);
+            initTranslation(gl, cylinderProgram, newmap[3], newmap[4], newmap[5], toggle2);
             initGloss(gl, cylinderProgram, newmap[2]);
             initScale(gl, cylinderProgram);
             initRotate(gl, cylinderProgram);
@@ -588,7 +589,7 @@ function draw(gl, cylinderProgram) {
             initLightColor(gl, cylinderProgram);
             initLightDirection(gl, cylinderProgram);
             initMatrix(gl, cylinderProgram, toggle1, toggle2);
-            initTranslation2(gl, cylinderProgram, selected[2], selected[3], selected[4], toggle2);
+            initTranslation(gl, cylinderProgram, selected[2], selected[3], selected[4], toggle2);
             gl.uniform1f(cylinderProgram.u_shininessVal, 1.0);
             initScale(gl, cylinderProgram);
             initRotate(gl, cylinderProgram)
@@ -929,7 +930,7 @@ function initMatrix(gl, cylinderProgram, tag1, tag2) {
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
         else {
-            mvpMatrix.setPerspective(90, 1, 10, 1000);
+            mvpMatrix.setPerspective(90, 1, 1, 1000);
             mvpMatrix.lookAt(0, 0, 200, 0, 0, 0, 0, 1, 0);
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
@@ -937,12 +938,12 @@ function initMatrix(gl, cylinderProgram, tag1, tag2) {
     else { // Side
         if (tag2 == 0) { //Ortho
             mvpMatrix.setOrtho(-200, 200, -200, 200, -1000, 1000);
-            mvpMatrix.lookAt(200, 200, 0, 0, 0, 0, 0, 0, 1);
+            mvpMatrix.lookAt(0, -200, 75, 0, 0, 0, 0, 1, 0);
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
         else {
-            mvpMatrix.setPerspective(90, 1, 10, 1000);
-            mvpMatrix.lookAt(200, 200, 0, 0, 0, 0, 0, 0, 1);
+            mvpMatrix.setPerspective(90, 1, 1, 1000);
+            mvpMatrix.lookAt(0, -200, 75, 0, 0, 0, 0, 1, 0);
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
     }
@@ -951,24 +952,14 @@ function initMatrix(gl, cylinderProgram, tag1, tag2) {
 /* initTranslation
  * input:
  * gl, cylinderProgram
- * (tx, ty): coordinates of your mouse click
+ * (tx, ty, tz): translation offset
  * tag: 0 for ortho view, 1 for pers view
- * 
- * The tag here is to distinguish between ortho and pers view, for I find the (tx, ty) needed for them are different.
- * I am confused, though, for I think for both views I should multiply the (tx, ty) by a scaling const, like 200.
- * But the canvas shows that for ortho I do not need to do this. idk why:-)
+ * output:
+ * none
+ * use:
+ * use (tx, ty, tz) to initialize u_Translation in shader
  */
-function initTranslation(gl, cylinderProgram, tx, ty, tag) {
-    gl.useProgram(cylinderProgram);
-    if (tag == 0) {
-        gl.uniform4f(cylinderProgram.u_Translation, tx, ty, 0.0, 0.0);
-    }
-    else {
-        gl.uniform4f(cylinderProgram.u_Translation, 200 * tx, 200 * ty, 0.0, 0.0);
-    }
-}
-
-function initTranslation2(gl, cylinderProgram, tx, ty, tz, tag) {
+function initTranslation(gl, cylinderProgram, tx, ty, tz, tag) {
     gl.useProgram(cylinderProgram);
     if (tag == 0) {
         gl.uniform4f(cylinderProgram.u_Translation, tx, ty, tz, 0.0);
@@ -982,6 +973,10 @@ function initTranslation2(gl, cylinderProgram, tx, ty, tz, tag) {
  * input:
  * gl, cylinderProgram
  * tag: 0 for red trees, 1 for blue trees
+ * output:
+ * none
+ * use:
+ * use 5.0 or 20.0 for cylinderProgram.u_shininessVal
  */
 function initGloss(gl, cylinderProgram, tag) {
     gl.useProgram(cylinderProgram);
@@ -998,6 +993,14 @@ function initScale(gl, cylinderProgram) {
     gl.uniformMatrix4fv(cylinderProgram.u_scaleMatrix, false, scale);
 }
 
+/* initRotate
+ * input:
+ * gl, cylinderProgram
+ * output:
+ * none
+ * use:
+ * use arrays rotate_x and rotate_z to initialize rotational matrix in shaders
+ */
 function initRotate(gl, cylinderProgram) {
     gl.useProgram(cylinderProgram);
     gl.uniformMatrix4fv(cylinderProgram.u_rotateMatrix_x, false, rotate_x);
