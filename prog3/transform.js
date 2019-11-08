@@ -334,7 +334,7 @@ function main() {
             var rect = ev.target.getBoundingClientRect();
 
             y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
-            selected[4] += (y - offz) / 200; // divided by 200 to see the translation procedure smoothly and in detail
+            selected[4] += (y - offz); // divided by 200 to see the translation procedure smoothly and in detail
             offz = y;
             isUp = 0;
             draw(gl, cylinderProgram);
@@ -345,7 +345,7 @@ function main() {
         var d = ev.wheelDelta;
         if (selected.length != 0) {
             console.log('scaling');
-            selected[5] = selected[5] + selected[5] * d / 5000;
+            selected[5] = selected[5] - selected[5] * d / 5000;
         }
         draw(gl, cylinderProgram);
     };
