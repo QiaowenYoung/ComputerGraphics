@@ -285,7 +285,7 @@ function main() {
             var rect = ev.target.getBoundingClientRect();
 
             y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
-            selected[4] += (offz - y) / 200;
+            selected[4] += (y - offz) / 200;
             offz = y;
             isUp = 0;
             draw(gl, cylinderProgram);
@@ -659,13 +659,12 @@ function save() {
     arr.push(count);
     for (var i = 0; i < count; i++) {
         var newmap = map[i];
-        v.push(newmap[0]);
-        v.push(newmap[1]);
-        v.push(newmap[2]);
-        v.push(newmap[3]);
+        for(var j = 0; j < 9; j++){
+            v.push(newmap[j]);
+        }
     }
     arr = arr.concat(v);
-    arr = arr.concat(tree);
+    arr = arr.concat(selected);
     exportRaw('test.txt', JSON.stringify(arr));
 }
 
@@ -692,17 +691,16 @@ function load() {
         count = arr[3];
         map = [];
         var i;
-        for (i = 4; i < 4 + count * 4; i += 4) {
+        for (i = 4; i < 4 + count * 9; i += 9) {
             var newmap = [];
-            newmap.push(arr[i]);
-            newmap.push(arr[i + 1]);
-            newmap.push(arr[i + 2]);
-            newmap.push(arr[i + 3]);
+            for(var j = 0; j < 9; j++) {
+                newmap.push(arr[i + j]);
+            }
             map.push(newmap);
         }
-        tree = [];
+        selected = [];
         for (; i < arr.length; i++) {
-            tree.push(arr[i]);
+            selected.push(arr[i]);
         }
     }
 }
@@ -735,7 +733,7 @@ function click(ev, gl, canvas, cylinderProgram) {
         newmap.push(1); // right click
         newmap.push(x); // x
         newmap.push(y); // y
-        newmap.push(0.7); // z
+        newmap.push(0.0); // z
         newmap.push(1.0); // Scaling factor
         newmap.push(0.0); // rotational angle by x axis
         newmap.push(0.0); // rotational angle by z axis
@@ -930,7 +928,7 @@ function initMatrix(gl, cylinderProgram, tag1, tag2) {
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
         else {
-            mvpMatrix.setPerspective(90, 1, 1, 1000);
+            mvpMatrix.setPerspective(90, 1, 10, 1000);
             mvpMatrix.lookAt(0, 0, 200, 0, 0, 0, 0, 1, 0);
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
@@ -942,7 +940,7 @@ function initMatrix(gl, cylinderProgram, tag1, tag2) {
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
         else {
-            mvpMatrix.setPerspective(90, 1, 1, 1000);
+            mvpMatrix.setPerspective(90, 1, 10, 1000);
             mvpMatrix.lookAt(0, -200, 75, 0, 0, 0, 0, 1, 0);
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
