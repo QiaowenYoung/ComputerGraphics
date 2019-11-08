@@ -194,17 +194,6 @@ function main() {
             offy1 = y;
             draw(gl, cylinderProgram);
         }
-        if (isUp == 1) {
-            console.log('middle mousemove');
-            var y = ev.clientY; // y coordinate of a mouse pointer
-            var rect = ev.target.getBoundingClientRect();
-
-            y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
-            console.log(`y-offz:${y-offz}`);
-            selected[4] += y - offz;
-            offz = y;
-            draw(gl, cylinderProgram);
-        }
         if (isRotating == 1) {
             console.log('rotation: mousemove');
             var x = ev.clientX; // x coordinate of a mouse pointer
@@ -296,6 +285,7 @@ function main() {
             var rect = ev.target.getBoundingClientRect();
 
             y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
+            console.log(`y-offz:${y-offz}`);
             selected[4] += y - offz;
             offz = y;
             isUp = 0;
