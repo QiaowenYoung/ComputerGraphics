@@ -17,7 +17,7 @@ var VSHADER_SOURCE =
     'uniform mat4 u_rotateMatrix_z;\n' + // rotate by z axis
     'void main() {\n' +
     '  vec4 v_vertPos4 = u_mvpMatrix * u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * a_Position;\n' +
-    '  v_vertPos = vec3(v_vertPos4) / v_vertPos4.w;\n' +
+    '  v_vertPos = vec3(v_vertPos4) / v_vertPos4.w;\n' + // view direction
     '  gl_Position = u_mvpMatrix * u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * a_Position + u_Translation;\n' +
     // Make the length of the normal 1.0
     '  vec3 normal = normalize((u_rotateMatrix_x * u_rotateMatrix_z * vec4(a_Normal,0.0)).xyz);\n' +
@@ -49,31 +49,57 @@ var FSHADER_SOURCE =
     '  gl_FragColor = v_Color;\n' +
     '}\n';
 
-var map = []; // each element contains a point
+/* map
+ * each element in map is an array, storing info of a tree
+ * for each array in map:
+ * array[0]: color.r
+ * 1: is/isn't being clicked
+ * 2: red/blue tree
+ * 3: x
+ * 4: y
+ * 5: z
+ * 6: scaling factor
+ * 7: rotational angle by x axis
+ * 8: rotational angle by z axis
+ */
+var map = [];
 var count = 0; // # of total trees
-var selected = []; // current selected tree
-var offx1, offy1;
-var offx2, offy2;
-var x0, y0;
-var isMoving = 0;
-var isRotating = 0;
-var isUp = 0;
 
-var scale = new Float32Array([
+/* selected
+ * contains the selected tree's info
+ * selected[0]: the tree's id in map
+ * 1: red/blue tree
+ * 2: x
+ * 3: y
+ * 4: z
+ * 5: scaling factor
+ * 6: rotational angle by x axis
+ * 7: rotational angle by z axis
+ */
+var selected = [];
+var offx1, offy1; // offset used when translate
+var offx2, offy2; // offset used when rotate
+var offz; // offset used when translate in the z direction
+var x0, y0; // original coord of a tree, used in translation
+var isMoving = 0; // represent whether you are doing a translation op
+var isRotating = 0; // whether you are rotating a tree
+var isUp = 0; // whether you are translating the tree in the z direction
+
+var scale = new Float32Array([ // scaling matrix
     1.0, 0.0, 0.0, 0.0,
     0.0, 1.0, 0.0, 0.0,
     0.0, 0.0, 1.0, 0.0,
     0.0, 0.0, 0.0, 1.0
 ]);
 
-var rotate_x = new Float32Array([
+var rotate_x = new Float32Array([ // rotational matrix: by x axis
     1.0, 0.0, 0.0, 0.0,
     0.0, 1.0, 0.0, 0.0,
     0.0, 0.0, 1.0, 0.0,
     0.0, 0.0, 0.0, 1.0
 ]);
 
-var rotate_z = new Float32Array([
+var rotate_z = new Float32Array([ // rotational matrix: by z axis
     1.0, 0.0, 0.0, 0.0,
     0.0, 1.0, 0.0, 0.0,
     0.0, 0.0, 1.0, 0.0,
@@ -137,7 +163,7 @@ function main() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     canvas.onmousedown = function (ev) {
-        if (selected.length != 0 && ev.button == 0) {
+        if (selected.length != 0 && ev.button == 0) { // translation
             console.log('translation: mousedown');
             isMoving = 1;
             var x = ev.clientX; // x coordinate of a mouse pointer
@@ -148,10 +174,21 @@ function main() {
             y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
             offx1 = x;
             offy1 = y;
+
+            /* Save the original coord of your mouse click:
+             *
+             * This is to distinguish whether your click indicates deselecting a tree,
+             * or translating the selected tree.
+             * So, if the canvas detects that for a mousedown and a mouseup,
+             * your mouse click coords are the same,
+             * it means that you want to deselect the current tree.
+             * Or, it means that you want to translate the current tree.
+             */
             x0 = x;
             y0 = y;
+            /* end */
         }
-        else if (selected.length != 0 && ev.button == 2) {
+        else if (selected.length != 0 && ev.button == 2) { // rotation
             console.log('rotate: mousedown');
             isRotating = 1;
             var x = ev.clientX; // x coordinate of a mouse pointer
@@ -170,7 +207,6 @@ function main() {
 
             y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
             offz = y;
-            y1 = y;
             isUp = 1;
         }
         else {
@@ -179,7 +215,7 @@ function main() {
     };
 
     canvas.onmousemove = function (ev) {
-        if (isMoving) {
+        if (isMoving) { // translation
             console.log('translation: mousemove');
             var x = ev.clientX; // x coordinate of a mouse pointer
             var y = ev.clientY; // y coordinate of a mouse pointer
@@ -189,11 +225,15 @@ function main() {
             y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
             selected[2] += x - offx1;
             selected[3] += y - offy1;
+
+            /* Update offx1 and offy1 every time the canvas detects a mousemove,
+             * so that the translation is realtime.
+             */
             offx1 = x;
             offy1 = y;
             draw(gl, cylinderProgram);
         }
-        if (isRotating == 1) {
+        if (isRotating == 1) { // rotation
             console.log('rotation: mousemove');
             var x = ev.clientX; // x coordinate of a mouse pointer
             var y = ev.clientY; // y coordinate of a mouse pointer
@@ -201,6 +241,12 @@ function main() {
 
             x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
             y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
+
+            /* Here I compare the original offsets of horizontal and vertical movement.
+             * If the horizontal movement is larger than the vertical one, 
+             * do a rotation by z axis.
+             * Else, do a rotation by x axis.
+             */
             if (Math.abs(x - offx2) == Math.abs(y - offy2)) {
                 isRotating = 1;
             }
@@ -216,17 +262,21 @@ function main() {
             offy2 = y;
             draw(gl, cylinderProgram);
         }
-        else if(isRotating == 2){
+        else if(isRotating == 2){ // rotate by x axis
             console.log('rotation: mousemove, rotate by x axis');
             var y = ev.clientY; // y coordinate of a mouse pointer
             var rect = ev.target.getBoundingClientRect();
 
             y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
+            
+            /* I multiply the movement of your mouse with 2*PI,
+             * to transfer the movement into radius.
+             */
             selected[6] = selected[6] + 2 * Math.PI * (y - offy2);
             offy2 = y;
             draw(gl, cylinderProgram);
         }
-        else if(isRotating == 3) {
+        else if(isRotating == 3) { // rotate by z axis
             console.log('rotation: mousemove, rotate by z axis');
             var x = ev.clientX; // x coordinate of a mouse pointer
             var rect = ev.target.getBoundingClientRect();
@@ -239,7 +289,7 @@ function main() {
     }
 
     canvas.onmouseup = function (ev) {
-        if (ev.button == 0 && selected.length != 0 && isMoving == 1) {
+        if (ev.button == 0 && selected.length != 0 && isMoving == 1) { // translation ends
             console.log('translation: mouseup');
             isMoving = 0;
             var x = ev.clientX; // x coordinate of a mouse pointer
@@ -252,14 +302,14 @@ function main() {
             selected[3] += y - offy1;
             offx1 = x;
             offy1 = y;
-            if(x0 == x && y0 == y) {
+            if(x0 == x && y0 == y) { // the click means to deselecte the tree; see explanations in line 178~186
                 redraw(ev, gl, canvas, cylinderProgram);
             }
             else{
                 draw(gl, cylinderProgram);
             }
         }
-        else if (ev.button == 2 && selected.length != 0 && isRotating != 0) {
+        else if (ev.button == 2 && selected.length != 0 && isRotating != 0) { // rotation ends
             console.log('rotation: mouseup');
             var x = ev.clientX; // x coordinate of a mouse pointer
             var y = ev.clientY; // y coordinate of a mouse pointer
@@ -278,20 +328,20 @@ function main() {
             isRotating = 0;
             draw(gl, cylinderProgram);
         }
-        else if (ev.which == 2 && selected.length != 0 && isUp == 1) {
+        else if (ev.which == 2 && selected.length != 0 && isUp == 1) { // translation in z direction ends
             console.log('middle up');
             var y = ev.clientY; // y coordinate of a mouse pointer
             var rect = ev.target.getBoundingClientRect();
 
             y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
-            selected[4] += (y - offz) / 200;
+            selected[4] += (y - offz) / 200; // divided by 200 to see the translation procedure smoothly and in detail
             offz = y;
             isUp = 0;
             draw(gl, cylinderProgram);
         }
     }
 
-    document.onmousewheel = function (ev) {
+    document.onmousewheel = function (ev) { // scaling
         var d = ev.wheelDelta;
         if (selected.length != 0) {
             console.log('scaling');
@@ -555,7 +605,7 @@ function draw(gl, cylinderProgram) {
                 gl.drawArrays(gl.LINES, 0, len);
             }
         }
-        else { // current tree is being selected
+        else { // the tree is being selected
             var s = selected[5];
             scale = new Float32Array([
                 s, 0.0, 0.0, 0.0,
