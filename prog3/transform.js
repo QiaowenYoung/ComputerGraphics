@@ -262,13 +262,13 @@ function main() {
             offy2 = y;
             draw(gl, cylinderProgram);
         }
-        else if(isRotating == 2){ // rotate by x axis
+        else if (isRotating == 2) { // rotate by x axis
             console.log('rotation: mousemove, rotate by x axis');
             var y = ev.clientY; // y coordinate of a mouse pointer
             var rect = ev.target.getBoundingClientRect();
 
             y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
-            
+
             /* I multiply the movement of your mouse with 2*PI,
              * to transfer the movement into radius.
              */
@@ -276,7 +276,7 @@ function main() {
             offy2 = y;
             draw(gl, cylinderProgram);
         }
-        else if(isRotating == 3) { // rotate by z axis
+        else if (isRotating == 3) { // rotate by z axis
             console.log('rotation: mousemove, rotate by z axis');
             var x = ev.clientX; // x coordinate of a mouse pointer
             var rect = ev.target.getBoundingClientRect();
@@ -302,10 +302,10 @@ function main() {
             selected[3] += y - offy1;
             offx1 = x;
             offy1 = y;
-            if(x0 == x && y0 == y) { // the click means to deselecte the tree; see explanations in line 178~186
+            if (x0 == x && y0 == y) { // the click means to deselecte the tree; see explanations in line 178~186
                 redraw(ev, gl, canvas, cylinderProgram);
             }
-            else{
+            else {
                 draw(gl, cylinderProgram);
             }
         }
@@ -317,11 +317,11 @@ function main() {
 
             x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
             y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
-            if(isRotating == 2){
+            if (isRotating == 2) {
                 selected[6] = selected[6] + 2 * Math.PI * (y - offy2);
                 offy2 = y;
             }
-            else if(isRotating == 3) {
+            else if (isRotating == 3) {
                 selected[7] = selected[7] - 2 * Math.PI * (x - offx2);
                 offx2 = x;
             }
@@ -334,7 +334,7 @@ function main() {
             var rect = ev.target.getBoundingClientRect();
 
             y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
-            selected[4] += (y - offz); // divided by 200 to see the translation procedure smoothly and in detail
+            selected[4] += (y - offz) / 200; // divided by 200 to see the translation procedure smoothly and in detail
             offz = y;
             isUp = 0;
             draw(gl, cylinderProgram);
@@ -345,7 +345,8 @@ function main() {
         var d = ev.wheelDelta;
         if (selected.length != 0) {
             console.log('scaling');
-            selected[5] = selected[5] - selected[5] * d / 5000;
+            console.log(d);
+            selected[5] = selected[5] + selected[5] * d / 5000;
         }
         draw(gl, cylinderProgram);
     };
@@ -708,7 +709,7 @@ function save() {
     arr.push(count);
     for (var i = 0; i < count; i++) {
         var newmap = map[i];
-        for(var j = 0; j < 9; j++){
+        for (var j = 0; j < 9; j++) {
             v.push(newmap[j]);
         }
     }
@@ -742,7 +743,7 @@ function load() {
         var i;
         for (i = 4; i < 4 + count * 9; i += 9) {
             var newmap = [];
-            for(var j = 0; j < 9; j++) {
+            for (var j = 0; j < 9; j++) {
                 newmap.push(arr[i + j]);
             }
             map.push(newmap);
