@@ -54,10 +54,10 @@ var count = 0; // # of total trees
 var selected = []; // current selected tree
 var offx1, offy1;
 var offx2, offy2;
-var offz;
-var x0, y0;
+var x0, y0, y1;
 var isMoving = 0;
 var isRotating = 0;
+var isUp = 0;
 
 var scale = new Float32Array([
     1.0, 0.0, 0.0, 0.0,
@@ -170,6 +170,8 @@ function main() {
 
             y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
             offz = y;
+            y1 = y;
+            isUp = 1;
         }
         else {
             console.log('left click');
@@ -190,6 +192,16 @@ function main() {
             selected[3] += y - offy1;
             offx1 = x;
             offy1 = y;
+            draw(gl, cylinderProgram);
+        }
+        if (isUp == 1) {
+            console.log('middle mousemove');
+            var y = ev.clientY; // y coordinate of a mouse pointer
+            var rect = ev.target.getBoundingClientRect();
+
+            y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
+            selected[4] += y - offz;
+            offz = y;
             draw(gl, cylinderProgram);
         }
         if (isRotating == 1) {
@@ -277,14 +289,15 @@ function main() {
             isRotating = 0;
             draw(gl, cylinderProgram);
         }
-        else if (ev.which == 2) {
+        else if (ev.which == 2 && selected.length != 0 && isUp == 1) {
             console.log('middle up');
             var y = ev.clientY; // y coordinate of a mouse pointer
             var rect = ev.target.getBoundingClientRect();
 
             y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
-            offz = y - offz;
-            selected[4] += offz;
+            selected[4] += y - offz;
+            offz = y;
+            isUp = 0;
             draw(gl, cylinderProgram);
         }
     }
