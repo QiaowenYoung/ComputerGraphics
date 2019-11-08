@@ -345,7 +345,6 @@ function main() {
         var d = ev.wheelDelta;
         if (selected.length != 0) {
             console.log('scaling');
-            console.log(d);
             selected[5] = selected[5] - selected[5] * d / 5000;
         }
         draw(gl, cylinderProgram);
