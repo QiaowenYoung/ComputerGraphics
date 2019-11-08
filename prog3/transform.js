@@ -334,7 +334,7 @@ function main() {
             var rect = ev.target.getBoundingClientRect();
 
             y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
-            selected[4] += (y - offz) / 200; // divided by 200 to see the translation procedure smoothly and in detail
+            selected[4] += (offz - y) / 5; // divided by 5 so that you may see how the tree disappears more smoothly
             offz = y;
             isUp = 0;
             draw(gl, cylinderProgram);
@@ -346,7 +346,7 @@ function main() {
         if (selected.length != 0) {
             console.log('scaling');
             console.log(d);
-            selected[5] = selected[5] + selected[5] * d / 5000;
+            selected[5] = selected[5] - selected[5] * d / 5000;
         }
         draw(gl, cylinderProgram);
     };
