@@ -285,7 +285,7 @@ function main() {
             var rect = ev.target.getBoundingClientRect();
 
             y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
-            selected[4] += (y - offz) / 200;
+            selected[4] += y - offz;
             offz = y;
             isUp = 0;
             draw(gl, cylinderProgram);
