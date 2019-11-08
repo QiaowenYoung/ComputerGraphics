@@ -55,6 +55,9 @@ var selected = []; // current selected tree
 var offx1, offy1;
 var offx2, offy2;
 var offz;
+var x0, y0;
+var isMoving = 0;
+var isRotating = 0;
 
 var scale = new Float32Array([
     1.0, 0.0, 0.0, 0.0,
@@ -134,7 +137,9 @@ function main() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     canvas.onmousedown = function (ev) {
-        if (ev.ctrlKey == 1 && ev.button == 0) { // ctrl + left click
+        if (selected.length != 0 && ev.button == 0) {
+            console.log('translation: mousedown');
+            isMoving = 1;
             var x = ev.clientX; // x coordinate of a mouse pointer
             var y = ev.clientY; // y coordinate of a mouse pointer
             var rect = ev.target.getBoundingClientRect();
@@ -143,8 +148,12 @@ function main() {
             y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
             offx1 = x;
             offy1 = y;
+            x0 = x;
+            y0 = y;
         }
-        else if (ev.ctrlKey == 1 && ev.button == 2) { // ctrl + right click
+        else if (selected.length != 0 && ev.button == 2) {
+            console.log('rotate: mousedown');
+            isRotating = 1;
             var x = ev.clientX; // x coordinate of a mouse pointer
             var y = ev.clientY; // y coordinate of a mouse pointer
             var rect = ev.target.getBoundingClientRect();
@@ -162,57 +171,110 @@ function main() {
             y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
             offz = y;
         }
-        else if (ev.shiftKey == 1) {
-            redraw(ev, gl, cylinderProgram);
-        }
         else {
-            click(ev, gl, canvas, cylinderProgram);
+            console.log('left click');
+            redraw(ev, gl, canvas, cylinderProgram);
         }
     };
 
-    canvas.onmouseup = function (ev) {
-        if (ev.ctrlKey == 1 && ev.button == 0) {
+    canvas.onmousemove = function (ev) {
+        if (isMoving) {
+            console.log('translation: mousemove');
             var x = ev.clientX; // x coordinate of a mouse pointer
             var y = ev.clientY; // y coordinate of a mouse pointer
             var rect = ev.target.getBoundingClientRect();
 
             x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
             y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
-            offx1 = x - offx1;
-            offy1 = y - offy1;
-            selected[2] += offx1;
-            selected[3] += offy1;
+            selected[2] += x - offx1;
+            selected[3] += y - offy1;
+            offx1 = x;
+            offy1 = y;
             draw(gl, cylinderProgram);
         }
-        else if (ev.ctrlKey == 1 && ev.button == 2) {
+        if (isRotating == 1) {
+            console.log('rotation: mousemove');
             var x = ev.clientX; // x coordinate of a mouse pointer
             var y = ev.clientY; // y coordinate of a mouse pointer
             var rect = ev.target.getBoundingClientRect();
 
             x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
             y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
-            offx2 = x - offx2;
-            offy2 = y - offy2;
-            if (Math.abs(offx2) < Math.abs(offy2)) { // rotate by x
-                if (selected.length != 0) {
-                    if (offy2 < 0) {
-                        selected[6] = selected[6] + Math.PI / 4;
-                    }
-                    else {
-                        selected[6] = selected[6] - Math.PI / 4;
-                    }
-                }
+            if (Math.abs(x - offx2) == Math.abs(y - offy2)) {
+                isRotating = 1;
             }
-            else { // rotate by z
-                if (selected.length != 0) {
-                    if (offx2 < 0) {
-                        selected[7] = selected[7] - Math.PI / 4;
-                    }
-                    else {
-                        selected[7] = selected[7] + Math.PI / 4;
-                    }
-                }
+            else if (Math.abs(x - offx2) < Math.abs(y - offy2)) { // rotate by x
+                selected[6] = selected[6] - 2 * Math.PI * (y - offy2);
+                isRotating = 2;
             }
+            else if (Math.abs(x - offx2) > Math.abs(y - offy2)) { // rotate by z
+                selected[7] = selected[7] + 2 * Math.PI * (x - offx2);
+                isRotating = 3;
+            }
+            offx2 = x;
+            offy2 = y;
+            draw(gl, cylinderProgram);
+        }
+        else if(isRotating == 2){
+            console.log('rotation: mousemove, rotate by x axis');
+            var y = ev.clientY; // y coordinate of a mouse pointer
+            var rect = ev.target.getBoundingClientRect();
+
+            y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
+            selected[6] = selected[6] + 2 * Math.PI * (y - offy2);
+            offy2 = y;
+            draw(gl, cylinderProgram);
+        }
+        else if(isRotating == 3) {
+            console.log('rotation: mousemove, rotate by z axis');
+            var x = ev.clientX; // x coordinate of a mouse pointer
+            var rect = ev.target.getBoundingClientRect();
+
+            x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
+            selected[7] = selected[7] - 2 * Math.PI * (x - offx2);
+            offx2 = x;
+            draw(gl, cylinderProgram);
+        }
+    }
+
+    canvas.onmouseup = function (ev) {
+        if (ev.button == 0 && selected.length != 0 && isMoving == 1) {
+            console.log('translation: mouseup');
+            isMoving = 0;
+            var x = ev.clientX; // x coordinate of a mouse pointer
+            var y = ev.clientY; // y coordinate of a mouse pointer
+            var rect = ev.target.getBoundingClientRect();
+
+            x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
+            y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
+            selected[2] += x - offx1;
+            selected[3] += y - offy1;
+            offx1 = x;
+            offy1 = y;
+            if(x0 == x && y0 == y) {
+                redraw(ev, gl, canvas, cylinderProgram);
+            }
+            else{
+                draw(gl, cylinderProgram);
+            }
+        }
+        else if (ev.button == 2 && selected.length != 0 && isRotating != 0) {
+            console.log('rotation: mouseup');
+            var x = ev.clientX; // x coordinate of a mouse pointer
+            var y = ev.clientY; // y coordinate of a mouse pointer
+            var rect = ev.target.getBoundingClientRect();
+
+            x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
+            y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
+            if(isRotating == 2){
+                selected[6] = selected[6] + 2 * Math.PI * (y - offy2);
+                offy2 = y;
+            }
+            else if(isRotating == 3) {
+                selected[7] = selected[7] - 2 * Math.PI * (x - offx2);
+                offx2 = x;
+            }
+            isRotating = 0;
             draw(gl, cylinderProgram);
         }
         else if (ev.which == 2) {
@@ -307,7 +369,7 @@ function main() {
  * use:
  * redraw the scene after a shift+click
  */
-function redraw(ev, gl, cylinderProgram) {
+function redraw(ev, gl, canvas, cylinderProgram) {
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
     gl.enable(gl.DEPTH_TEST);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -331,16 +393,16 @@ function redraw(ev, gl, cylinderProgram) {
         var s_x = Math.sin(newmap[7]);
         rotate_x = new Float32Array([
             1.0, 0.0, 0.0, 0.0,
-            0.0, c_x, s_x, 0.0,
-            0.0, -s_x, c_x, 0.0,
+            0.0, c_x, -s_x, 0.0,
+            0.0, s_x, c_x, 0.0,
             0.0, 0.0, 0.0, 1.0
         ]);
 
         var c_z = Math.cos(newmap[8]);
         var s_z = Math.sin(newmap[8]);
         rotate_z = new Float32Array([
-            c_z, s_z, 0.0, 0.0,
-            -s_z, c_z, 0.0, 0.0,
+            c_z, -s_z, 0.0, 0.0,
+            s_z, c_z, 0.0, 0.0,
             0.0, 0.0, 1.0, 0.0,
             0.0, 0.0, 0.0, 1.0
         ]);
@@ -397,12 +459,17 @@ function redraw(ev, gl, cylinderProgram) {
             map[selected[0]] = newmap;
             selected = [];
         }
+        else {
+            console.log('create a tree')
+            click(ev, gl, canvas, cylinderProgram);
+        }
     }
 
     if (selected.length == 0) { // no other tree currently selected
         for (var i = 0; i < count; i++) {
             var newmap = map[i];
             if (pixels[0] == newmap[0] && pixels[0] + pixels[1] + pixels[2] + pixels[3] != 1020) { // get the clicked tree's info
+                console.log('select a tree');
                 selected.push(i); // id in map
                 selected.push(newmap[2]); // left or right
                 selected.push(newmap[3]); // x
@@ -440,16 +507,16 @@ function draw(gl, cylinderProgram) {
             var s_x = Math.sin(newmap[7]);
             rotate_x = new Float32Array([
                 1.0, 0.0, 0.0, 0.0,
-                0.0, c_x, s_x, 0.0,
-                0.0, -s_x, c_x, 0.0,
+                0.0, c_x, -s_x, 0.0,
+                0.0, s_x, c_x, 0.0,
                 0.0, 0.0, 0.0, 1.0
             ]);
 
             var c_z = Math.cos(newmap[8]);
             var s_z = Math.sin(newmap[8]);
             rotate_z = new Float32Array([
-                c_z, s_z, 0.0, 0.0,
-                -s_z, c_z, 0.0, 0.0,
+                c_z, -s_z, 0.0, 0.0,
+                s_z, c_z, 0.0, 0.0,
                 0.0, 0.0, 1.0, 0.0,
                 0.0, 0.0, 0.0, 1.0
             ]);
@@ -497,16 +564,16 @@ function draw(gl, cylinderProgram) {
             var s_x = Math.sin(selected[6]);
             rotate_x = new Float32Array([
                 1.0, 0.0, 0.0, 0.0,
-                0.0, c_x, s_x, 0.0,
-                0.0, -s_x, c_x, 0.0,
+                0.0, c_x, -s_x, 0.0,
+                0.0, s_x, c_x, 0.0,
                 0.0, 0.0, 0.0, 1.0
             ]);
 
             var c_z = Math.cos(selected[7]);
             var s_z = Math.sin(selected[7]);
             rotate_z = new Float32Array([
-                c_z, s_z, 0.0, 0.0,
-                -s_z, c_z, 0.0, 0.0,
+                c_z, -s_z, 0.0, 0.0,
+                s_z, c_z, 0.0, 0.0,
                 0.0, 0.0, 1.0, 0.0,
                 0.0, 0.0, 0.0, 1.0
             ]);
