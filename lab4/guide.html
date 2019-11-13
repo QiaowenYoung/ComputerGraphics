@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Features</title>
+    <style>
+        #text1 {
+            padding-left: 80px;
+            padding-right: 700px;
+            padding-top: 100px;
+            color: steelblue;
+            font-family: 'Times New Roman', Times, serif;
+        }
+
+        img {
+            position: absolute;
+            right: 80px;
+            top: 250px;
+            box-shadow: 2px 2px 5px steelblue;
+            border-radius: 0% 10% 0% 10% / 0% 20% 0% 20%;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 110%;
+            background-image: linear-gradient(to top, lightblue, white);
+        }
+
+        a:link {
+            text-decoration: none;
+            color: steelblue
+        }
+
+        a:active {
+            text-decoration: blink
+        }
+
+        a:hover {
+            text-decoration: underline;
+            color: lightcoral
+        }
+
+        a:visited {
+            text-decoration: none;
+            color: darkturquoise
+        }
+    </style>
+</head>
+
+<body>
+    <div id=text1>
+        <h1>User-guide and features</h1>
+        <h3>Features</h3>
+        <p>The canvas is 600x600 in dimension.</p>
+        <p>Left click to draw a red tree, right click to draw a blue tree. 
+        </p>
+        <p>Click on the toggle below canvas to change view from top to side. 
+            The second toggle is to switch between orthographic view and perspective view. 
+            The checkbox under two toggles is to choose between flat, smooth or wireframe.
+        </p>
+        <p>Click on the first button to save your current work to file. 
+            Click on the second button to load a scene from file. Then click "submit" to see your previous work.
+        </p>
+        <p>
+            Click on a visible tree to select it. You can only select one tree at a time. When you want to select another one, 
+            you need to do a click on the canvas blank, then click on another tree. 
+            After a selection, you have the following options:
+        </p>
+        <p> 1. Translation: the displacement between a left mouse down event and the left mouse up event 
+            indicates the amount of movement to be applied to the picked object. 
+            BONUS: The 2D translation is REALTIME, meaning that you can see the tree going with your mousemove. 
+            The movement in the z direction can be done clicking on the middle button of a mouse and drag it. 
+            You may see that after several drag operations, the tree suddenly disappears, 
+            cause it flies off the range of your view. 
+            You can drag your mouse at a low rate to see how it disappears part by part.
+            </p>
+        <p>
+            2. Scaling: scrolling up your scrolling wheel will increase the object, while scrolling down will decrease the object.
+        </p>
+        <p>
+            3. Rotation: A right mouse down with horizontal motion until a mouse up event indicates a rotation about the z-axis of the object. 
+            A right mouse down with a vertical motion until a mouse up event indicates a rotation about the x-axis of the object. 
+            BONUS: the rotation is also REALTIME.
+        </p>
+        <p>
+            All the transformations are cumulative.
+        </p>
+        <h3>Thoughts</h3>
+        <p>I calculate all the coordinates for a whole tree and it's normals and store them in the ./point.js. 
+            There are 6 arrays in the ./points.js, namely cylinderl (the tree created by a left click), 
+            cylinderr (by a right click), nl (normals for a left click tree under smooth shading), 
+            nr (normals for a right one under smooth shading), nnl (normals for a left click under flat shading), 
+            nnr (normals for a right click under flat shading). The algorithm for the trees calculation is in ./algorithm.js. 
+            It has detailed documentation for you to check.</p>
+        <a href="features.html">Homepage |</a>
+        <a href="driver.html">| My canvas</a>
+    </div>
+    <img src="screenshot2.png" width="500" height="280">
+</body>
+
+</html>
