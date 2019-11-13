@@ -49,6 +49,42 @@ var FSHADER_SOURCE =
     '  gl_FragColor = v_Color;\n' +
     '}\n';
 
+
+// Vertex shader program for sphere
+var vshader =
+    'attribute vec4 a_Position;\n' +
+    'attribute vec4 a_Normal;\n' +
+    'uniform mat4 u_MvpMatrix;\n' +
+    'uniform mat4 u_NormalMatrix;\n' +   // Transformation matrix of the normal
+    'uniform vec3 u_LightColor;\n' +     // Light color
+    'uniform vec3 u_LightDirection;\n' +  // Direction of the light source
+    'uniform vec4 u_Translation;\n' +
+    'varying vec4 v_Color;\n' +
+    'void main() {\n' +
+    '  vec4 color = vec4(1.0, 1.0, 0.0, 1.0);\n' + // Sphere color
+    '  gl_Position = u_MvpMatrix * a_Position + u_Translation;\n' +
+    // Calculate a normal to be fit with a model matrix, and make it 1.0 in length
+    '  vec3 normal = normalize(vec3(u_NormalMatrix * a_Normal));\n' +
+    // Calculate the light direction and make it 1.0 in length
+    '  vec3 lightDirection = normalize(u_LightDirection);\n' +
+    // The dot product of the light direction and the normal
+    '  float nDotL = max(dot(lightDirection, normal), 0.0);\n' +
+    // Calculate the color due to diffuse reflection
+    '  vec3 diffuse = u_LightColor * color.rgb * nDotL;\n' +
+    // Add the surface colors due to diffuse reflection and ambient reflection
+    '  v_Color = vec4(diffuse, color.a);\n' +
+    '}\n';
+
+// Fragment shader program for sphere
+var fshader =
+    '#ifdef GL_ES\n' +
+    'precision mediump float;\n' +
+    '#endif\n' +
+    'varying vec4 v_Color;\n' +
+    'void main() {\n' +
+    '  gl_FragColor = v_Color;\n' +
+    '}\n';
+
 /* map
  * each element in map is an array, storing info of a tree
  * for each array in map:
@@ -110,6 +146,9 @@ var rotate_z = new Float32Array([ // rotational matrix: by z axis
 // toggle2: 0 for ortho view, 1 for pers view
 // toggle3: 0 for flat, 1 for smooth, 2 for wireframe
 var toggle1 = 0, toggle2 = 0, toggle3 = 0;
+
+var positions = [];
+var indices = [];
 function main() {
     // Retrieve <canvas> element
     var canvas = document.getElementById('webgl');
@@ -156,11 +195,35 @@ function main() {
     }
     /* end */
 
+    var sphereProgram = createProgram(gl, vshader, fshader);
+    if (!sphereProgram) {
+        console.log('Failed to create program');
+        return -1;
+    }
+
+    sphereProgram.a_Position = gl.getAttribLocation(sphereProgram, 'a_Position');
+    sphereProgram.a_Normal = gl.getAttribLocation(sphereProgram, 'a_Normal');
+    sphereProgram.u_MvpMatrix = gl.getUniformLocation(sphereProgram, 'u_MvpMatrix');
+    sphereProgram.u_NormalMatrix = gl.getUniformLocation(sphereProgram, 'u_NormalMatrix');
+    sphereProgram.u_Translation = gl.getUniformLocation(sphereProgram, 'u_Translation');
+    sphereProgram.u_LightColor = gl.getUniformLocation(sphereProgram, 'u_LightColor');
+    sphereProgram.u_LightDirection = gl.getUniformLocation(sphereProgram, 'u_LightDirection');
+
+    if (sphereProgram.a_Position < 0 || sphereProgram.a_Normal < 0 || sphereProgram.u_MvpMatrix < 0 ||
+        sphereProgram.u_NormalMatrix < 0 || sphereProgram.u_Translation < 0 || sphereProgram.u_LightColor < 0 ||
+        sphereProgram.u_LightDirection < 0) {
+        console.log('Failed to locte variables for sphere');
+        return -1;
+    }
+
+    setPositions();
+
     // Specify the color for clearing <canvas>
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
     gl.enable(gl.DEPTH_TEST);
     // Clear color and depth buffer
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    //drawSphere(gl, sphereProgram);
 
     canvas.onmousedown = function (ev) {
         if (selected.length != 0 && ev.button == 0) { // translation
@@ -187,7 +250,7 @@ function main() {
             x0 = x;
             y0 = y;
             /* end */
-        }
+       }
         else if (selected.length != 0 && ev.button == 2) { // rotation
             console.log('rotate: mousedown');
             isRotating = 1;
@@ -210,7 +273,7 @@ function main() {
             isUp = 1;
         }
         else {
-            redraw(ev, gl, canvas, cylinderProgram);
+            redraw(ev, gl, canvas, cylinderProgram, sphereProgram);
         }
     };
 
@@ -231,7 +294,7 @@ function main() {
              */
             offx1 = x;
             offy1 = y;
-            draw(gl, cylinderProgram);
+            draw(gl, cylinderProgram, sphereProgram);
         }
         if (isRotating == 1) { // rotation
             console.log('rotation: mousemove');
@@ -260,7 +323,7 @@ function main() {
             }
             offx2 = x;
             offy2 = y;
-            draw(gl, cylinderProgram);
+            draw(gl, cylinderProgram, sphereProgram);
         }
         else if (isRotating == 2) { // rotate by x axis
             console.log('rotation: mousemove, rotate by x axis');
@@ -274,7 +337,7 @@ function main() {
              */
             selected[6] = selected[6] + 2 * Math.PI * (y - offy2);
             offy2 = y;
-            draw(gl, cylinderProgram);
+            draw(gl, cylinderProgram, sphereProgram);
         }
         else if (isRotating == 3) { // rotate by z axis
             console.log('rotation: mousemove, rotate by z axis');
@@ -284,7 +347,7 @@ function main() {
             x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
             selected[7] = selected[7] - 2 * Math.PI * (x - offx2);
             offx2 = x;
-            draw(gl, cylinderProgram);
+            draw(gl, cylinderProgram, sphereProgram);
         }
     }
 
@@ -303,10 +366,10 @@ function main() {
             offx1 = x;
             offy1 = y;
             if (x0 == x && y0 == y) { // the click means to deselecte the tree; see explanations in line 178~186
-                redraw(ev, gl, canvas, cylinderProgram);
+                redraw(ev, gl, canvas, cylinderProgram, sphereProgram);
             }
             else {
-                draw(gl, cylinderProgram);
+                draw(gl, cylinderProgram, sphereProgram);
             }
         }
         else if (ev.button == 2 && selected.length != 0 && isRotating != 0) { // rotation ends
@@ -326,7 +389,7 @@ function main() {
                 offx2 = x;
             }
             isRotating = 0;
-            draw(gl, cylinderProgram);
+            draw(gl, cylinderProgram, sphereProgram);
         }
         else if (ev.which == 2 && selected.length != 0 && isUp == 1) { // translation in z direction ends
             console.log('middle up');
@@ -337,7 +400,7 @@ function main() {
             selected[4] += (offz - y) / 5; // divided by 5 so that you may see how the tree disappears more smoothly
             offz = y;
             isUp = 0;
-            draw(gl, cylinderProgram);
+            draw(gl, cylinderProgram, sphereProgram);
         }
     }
 
@@ -347,17 +410,17 @@ function main() {
             console.log('scaling');
             selected[5] = selected[5] - selected[5] * d / 5000;
         }
-        draw(gl, cylinderProgram);
+        draw(gl, cylinderProgram, sphereProgram);
     };
 
     var checkbox1 = document.getElementById('toggle1');
     checkbox1.addEventListener('change', function () {
         if (checkbox1.checked) {
             toggle1 = 1;
-            draw(gl, cylinderProgram);
+            draw(gl, cylinderProgram, sphereProgram);
         } else {
             toggle1 = 0;
-            draw(gl, cylinderProgram);
+            draw(gl, cylinderProgram, sphereProgram);
         }
     });
 
@@ -365,32 +428,32 @@ function main() {
     checkbox2.addEventListener('change', function () {
         if (checkbox2.checked) {
             toggle2 = 1;
-            draw(gl, cylinderProgram);
+            draw(gl, cylinderProgram, sphereProgram);
         } else {
             toggle2 = 0;
-            draw(gl, cylinderProgram);
+            draw(gl, cylinderProgram, sphereProgram);
         }
     });
 
-    draw(gl, cylinderProgram);
+    draw(gl, cylinderProgram, sphereProgram);
 
     var rad = document.form.tree;
     rad[0].addEventListener('change', function () {
         toggle3 = 0;
-        draw(gl, cylinderProgram);
+        draw(gl, cylinderProgram, sphereProgram);
     });
     rad[1].addEventListener('change', function () {
         toggle3 = 1;
-        draw(gl, cylinderProgram);
+        draw(gl, cylinderProgram, sphereProgram);
     });
     rad[2].addEventListener('change', function () {
         toggle3 = 2;
-        draw(gl, cylinderProgram);
+        draw(gl, cylinderProgram, sphereProgram);
     });
 
     var submit = document.getElementById('submit');
     submit.addEventListener('click', function () {
-        draw(gl, cylinderProgram);
+        draw(gl, cylinderProgram, sphereProgram);
         // Change radio value based on the import
         if (toggle1 == 0) {
             checkbox1.checked = false;
@@ -422,7 +485,7 @@ function main() {
  * use:
  * redraw the scene after a shift+click
  */
-function redraw(ev, gl, canvas, cylinderProgram) {
+function redraw(ev, gl, canvas, cylinderProgram, sphereProgram) {
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
     gl.enable(gl.DEPTH_TEST);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -514,7 +577,7 @@ function redraw(ev, gl, canvas, cylinderProgram) {
         }
         else {
             console.log('create a tree')
-            click(ev, gl, canvas, cylinderProgram);
+            click(ev, gl, canvas, cylinderProgram, sphereProgram);
         }
     }
 
@@ -538,13 +601,14 @@ function redraw(ev, gl, canvas, cylinderProgram) {
             }
         }
     }
-    draw(gl, cylinderProgram);
+    draw(gl, cylinderProgram, sphereProgram);
 }
 
-function draw(gl, cylinderProgram) {
+function draw(gl, cylinderProgram, sphereProgram) {
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
     gl.enable(gl.DEPTH_TEST);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.useProgram(cylinderProgram);
     for (var i = 0; i < count; i++) {
         var newmap = map[i];
         if (newmap[1] == 0) {
@@ -641,7 +705,7 @@ function draw(gl, cylinderProgram) {
             initTranslation(gl, cylinderProgram, selected[2], selected[3], selected[4], toggle2);
             gl.uniform1f(cylinderProgram.u_shininessVal, 1.0);
             initScale(gl, cylinderProgram);
-            initRotate(gl, cylinderProgram)
+            initRotate(gl, cylinderProgram);
             var len;
             if (selected[1] == 0) {
                 len = cylinderl.length / 3;
@@ -674,6 +738,7 @@ function draw(gl, cylinderProgram) {
             map[selected[0]] = newmap;
         }
     }
+    drawSphere(gl, sphereProgram);
 }
 
 /* save: refer to https://jsfiddle.net/4v26ebtp/
@@ -754,7 +819,7 @@ function load() {
     }
 }
 
-function click(ev, gl, canvas, cylinderProgram) {
+function click(ev, gl, canvas, cylinderProgram, sphereProgram) {
     var x = ev.clientX; // x coordinate of a mouse pointer
     var y = ev.clientY; // y coordinate of a mouse pointer
     var rect = ev.target.getBoundingClientRect();
@@ -788,7 +853,7 @@ function click(ev, gl, canvas, cylinderProgram) {
         newmap.push(0.0); // rotational angle by z axis
         map.push(newmap);
     }
-    draw(gl, cylinderProgram);
+    draw(gl, cylinderProgram, sphereProgram);
 }
 
 /* initPositions
@@ -1052,4 +1117,149 @@ function initRotate(gl, cylinderProgram) {
     gl.useProgram(cylinderProgram);
     gl.uniformMatrix4fv(cylinderProgram.u_rotateMatrix_x, false, rotate_x);
     gl.uniformMatrix4fv(cylinderProgram.u_rotateMatrix_z, false, rotate_z);
+}
+
+function drawSphere(gl, sphereProgram) {
+    gl.useProgram(sphereProgram);
+    // Set the vertex coordinates, the color and the normal
+    var n = initVertexBuffers(gl, sphereProgram);
+    if (n < 0) {
+        console.log('Failed to set the vertex information');
+        return;
+    }
+
+    // Set the light color (white)
+    gl.uniform3f(sphereProgram.u_LightColor, 1.0, 1.0, 1.0);
+    // Set the light direction (in the world coordinate)
+    gl.uniform3f(sphereProgram.u_LightDirection, 1.0, 1.0, 1.0);
+
+    var modelMatrix = new Matrix4();  // Model matrix
+    var mvpMatrix = new Matrix4();    // Model view projection matrix
+    var normalMatrix = new Matrix4(); // Transformation matrix for normals
+
+    // Calculate the view projection matrix
+    if (toggle1 == 0) { // top view
+        if (toggle2 == 0) { // ortho view
+            mvpMatrix.setOrtho(-200, 200, -200, 200, -1000, 1000);
+            mvpMatrix.lookAt(0, 0, 200, 0, 0, 0, 0, 1, 0);
+            gl.uniform4f(sphereProgram.u_Translation, -0.5, -0.5, 0, 0);
+        }
+        else { // top + pers
+            mvpMatrix.setPerspective(90, canvas.width / canvas.height, 1, 1000);
+            mvpMatrix.lookAt(0, 0, 200, 0, 0, 0, 0, 1, 0);
+            gl.uniform4f(sphereProgram.u_Translation, -100, -100, 0, 0);
+        }
+    }
+    else {
+        if (toggle2 == 0) { // side + ortho
+            mvpMatrix.setOrtho(-200, 200, -200, 200, -1000, 1000);
+            mvpMatrix.lookAt(0, -200, 75, 0, 0, 0, 0, 1, 0);
+            gl.uniform4f(sphereProgram.u_Translation, -0.5, -0.5, 0, 0);
+        }
+        else { // side + pers
+            mvpMatrix.setPerspective(90, canvas.width / canvas.height, 1, 1000);
+            mvpMatrix.lookAt(0, -200, 75, 0, 0, 0, 0, 1, 0);
+            gl.uniform4f(sphereProgram.u_Translation, -100, -100, 0, 0);
+        }
+    }
+    mvpMatrix.multiply(modelMatrix);
+    // Pass the model view projection matrix to u_MvpMatrix
+    gl.uniformMatrix4fv(sphereProgram.u_MvpMatrix, false, mvpMatrix.elements);
+
+    // Calculate the matrix to transform the normal based on the model matrix
+    normalMatrix.setInverseOf(modelMatrix);
+    normalMatrix.transpose();
+    // Pass the transformation matrix for normals to u_NormalMatrix
+    gl.uniformMatrix4fv(sphereProgram.u_NormalMatrix, false, normalMatrix.elements);
+
+    // Draw the cube(Note that the 3rd argument is the gl.UNSIGNED_SHORT)
+    gl.drawElements(gl.TRIANGLES, n, gl.UNSIGNED_SHORT, 0);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+}
+
+function initVertexBuffers(gl, sphereProgram) { // Create a sphere
+    gl.useProgram(sphereProgram);
+    
+    // Write the vertex property to buffers (coordinates and normals)
+    // Same data can be used for vertex and normal
+    // In order to make it intelligible, another buffer is prepared separately
+    if (!initArrayBuffer(gl, sphereProgram, sphereProgram.a_Position, new Float32Array(positions), gl.FLOAT, 3)) return -1;
+    if (!initArrayBuffer(gl, sphereProgram, sphereProgram.a_Normal, new Float32Array(positions), gl.FLOAT, 3)) return -1;
+
+    // Unbind the buffer object
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+    // Write the indices to the buffer object
+    var indexBuffer = gl.createBuffer();
+    if (!indexBuffer) {
+        console.log('Failed to create the buffer object');
+        return -1;
+    }
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+
+    return indices.length;
+}
+
+function initArrayBuffer(gl, program, a_attribute, data, type, num) {
+    gl.useProgram(program);
+    // Create a buffer object
+    var buffer = gl.createBuffer();
+    if (!buffer) {
+        console.log('Failed to create the buffer object');
+        return false;
+    }
+    // Write date into the buffer object
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+    // Assign the buffer object to the attribute variable
+    gl.vertexAttribPointer(a_attribute, num, type, false, 0, 0);
+    // Enable the assignment of the buffer object to the attribute variable
+    gl.enableVertexAttribArray(a_attribute);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+    return true;
+}
+
+function setPositions() {
+    var SPHERE_DIV = 13;
+    var r = 5;
+
+    var i, ai, si, ci;
+    var j, aj, sj, cj;
+    var p1, p2;
+
+    // Generate coordinates
+    for (j = 0; j <= SPHERE_DIV; j++) {
+        aj = j * Math.PI / SPHERE_DIV;
+        sj = Math.sin(aj);
+        cj = Math.cos(aj);
+        for (i = 0; i <= SPHERE_DIV; i++) {
+            ai = i * 2 * Math.PI / SPHERE_DIV;
+            si = Math.sin(ai);
+            ci = Math.cos(ai);
+
+            positions.push(r * si * sj);  // X
+            positions.push(r * cj);       // Y
+            positions.push(r * ci * sj);  // Z
+        }
+    }
+
+    // Generate indices
+    for (j = 0; j < SPHERE_DIV; j++) {
+        for (i = 0; i < SPHERE_DIV; i++) {
+            p1 = j * (SPHERE_DIV + 1) + i;
+            p2 = p1 + (SPHERE_DIV + 1);
+
+            indices.push(p1);
+            indices.push(p2);
+            indices.push(p1 + 1);
+
+            indices.push(p1 + 1);
+            indices.push(p2);
+            indices.push(p2 + 1);
+        }
+    }
 }
