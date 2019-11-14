@@ -1084,14 +1084,8 @@ function initLightDirection(gl, cylinderProgram) {
 
 function initLightPos(gl, cylinderProgram) {
     gl.useProgram(cylinderProgram);
-    //if(toggle2 == 0){ // ortho view
-        //var lightPos = new Vector3([-0.5 + selected_s[0], -0.5 + selected_s[1], 0]);
-        //gl.uniform3fv(cylinderProgram.u_LightPos, lightPos.elements);
-    //}
-    //else { // pers view
-        var lightPos = new Vector3([-100 + 200 * selected_s[0], -100 + 200 * selected_s[1], 0]);
-        gl.uniform3fv(cylinderProgram.u_LightPos, lightPos.elements);
-    //}
+    var lightPos = new Vector3([-100 + 200 * selected_s[0], -100 + 200 * selected_s[1], 0]);
+    gl.uniform3fv(cylinderProgram.u_LightPos, lightPos.elements);
 }
 
 /* initMatrix
