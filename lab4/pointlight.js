@@ -9,10 +9,12 @@ var VSHADER_SOURCE =
     'uniform vec4 u_Translation;\n' +
     'uniform vec3 u_LightColor;\n' +     // Light color
     'uniform vec3 u_LightDirection;\n' + // Light direction (in the world coordinate, normalized)
+    'uniform vec3 u_LightPos;\n' + // Point light position
     'varying vec4 v_Color;\n' +
     'varying vec3 v_vertPos;\n' + // View Direction
     'uniform float u_shininessVal;\n' + // 20 or 5
     'uniform bool u_Clicked;\n' + // Mouse is pressed
+    'uniform bool u_LightOn;\n' + // Turn on/off the point lighting
     'uniform mat4 u_scaleMatrix;\n' + // scale
     'uniform mat4 u_rotateMatrix_x;\n' + // rotate by x axis
     'uniform mat4 u_rotateMatrix_z;\n' + // rotate by z axis
@@ -36,7 +38,18 @@ var VSHADER_SOURCE =
     '           float specAngle = max(dot(R, V), 0.0);\n' +
     '           specular = pow(specAngle, u_shininessVal);\n' +
     '       }\n' +
+
+            // Point light
+    '       vec3 lightDirection2 = normalize(u_LightPos - vec3(a_Position));\n' +
+    '       float nDotL2 = max(dot(lightDirection2, normal), 0.0);\n' +
+    '       vec3 diffuse2 = vec3(0.5, 0.5, 1) * a_Color.rgb * nDotL2;\n' +
+
     '       v_Color = vec4(diffuse + vec3(1.0, 1.0, 1.0) * vec3(1.0, 1.0, 1.0) * specular, a_Color.a);\n' +
+
+    '       if (u_LightOn) {\n' + // Add point lighting
+    '           v_Color = vec4(diffuse + diffuse2 + vec3(1.0, 1.0, 1.0) * vec3(1.0, 1.0, 1.0) * specular, a_Color.a);\n' +
+    '       }\n' +
+
     '       if (u_Clicked) {\n' + //  Draw in the selected color if mouse is pressed
     '           v_Color = a_Color_2;\n' +
     '       }\n' +
@@ -173,18 +186,20 @@ function main() {
     cylinderProgram.u_LightDirection = gl.getUniformLocation(cylinderProgram, 'u_LightDirection');
     cylinderProgram.u_shininessVal = gl.getUniformLocation(cylinderProgram, 'u_shininessVal');
     cylinderProgram.u_Clicked = gl.getUniformLocation(cylinderProgram, 'u_Clicked');
+    cylinderProgram.u_LightOn = gl.getUniformLocation(cylinderProgram, 'u_LightOn');
     cylinderProgram.u_rotateMatrix_x = gl.getUniformLocation(cylinderProgram, 'u_rotateMatrix_x');
     cylinderProgram.u_rotateMatrix_z = gl.getUniformLocation(cylinderProgram, 'u_rotateMatrix_z');
     cylinderProgram.u_scaleMatrix = gl.getUniformLocation(cylinderProgram, 'u_scaleMatrix');
     cylinderProgram.u_NormalMatrix = gl.getUniformLocation(cylinderProgram, 'u_NormalMatrix');
     cylinderProgram.u_isTree = gl.getUniformLocation(cylinderProgram, 'u_isTree');
+    cylinderProgram.u_LightPos = gl.getUniformLocation(cylinderProgram, 'u_LightPos');
 
     if (cylinderProgram.a_Position < 0 || cylinderProgram.a_Color < 0 || cylinderProgram.a_Color_2 < 0 ||
         cylinderProgram.a_Normal < 0 || cylinderProgram.u_ViewMatrix < 0 || cylinderProgram.u_ProjMatrix < 0 ||
         cylinderProgram.u_Translation < 0 || cylinderProgram.u_LightColor < 0 || cylinderProgram.u_LightDirection < 0 ||
         cylinderProgram.u_shininessVal < 0 || cylinderProgram.u_Clicked < 0 || cylinderProgram.u_rotateMatrix_x < 0 ||
         cylinderProgram.u_rotateMatrix_z < 0 || cylinderProgram.u_scaleMatrix < 0 || cylinderProgram.u_NormalMatrix < 0 ||
-        cylinderProgram.u_isTree < 0) {
+        cylinderProgram.u_isTree < 0 || cylinderProgram.u_LightPos < 0 || cylinderProgram.u_LightOn < 0) {
         console.log('Failed to locate variables for cylinder');
         return -1;
     }
@@ -549,12 +564,14 @@ function redraw(ev, gl, canvas, cylinderProgram) {
         initColors(gl, cylinderProgram, newmap[2]);
         initLightColor(gl, cylinderProgram);
         initLightDirection(gl, cylinderProgram);
+        initLightPos(gl, cylinderProgram);
         initMatrix(gl, cylinderProgram, toggle1, toggle2);
         initTranslation(gl, cylinderProgram, newmap[3], newmap[4], newmap[5], toggle2);
         initGloss(gl, cylinderProgram, newmap[2]);
         initNormals(gl, cylinderProgram, newmap[2], 0);
         gl.uniform1i(cylinderProgram.u_Clicked, 1);
         gl.uniform1i(cylinderProgram.u_isTree, 1); // draw trees
+        gl.uniform1i(cylinderProgram.u_LightOn, is_selected_s);
         gl.vertexAttrib4f(cylinderProgram.a_Color_2, color, 0.0, 0.0, 1.0);
         initScale(gl, cylinderProgram);
         initRotate(gl, cylinderProgram);
@@ -672,10 +689,12 @@ function draw(gl, cylinderProgram) {
             gl.useProgram(cylinderProgram);
             gl.uniform1i(cylinderProgram.u_Clicked, 0);
             gl.uniform1i(cylinderProgram.u_isTree, 1);
+            gl.uniform1i(cylinderProgram.u_LightOn, is_selected_s);
             initPositions(gl, cylinderProgram, newmap[2]);
             initColors(gl, cylinderProgram, newmap[2]);
             initLightColor(gl, cylinderProgram);
             initLightDirection(gl, cylinderProgram);
+            initLightPos(gl, cylinderProgram);
             initMatrix(gl, cylinderProgram, toggle1, toggle2);
             initTranslation(gl, cylinderProgram, newmap[3], newmap[4], newmap[5], toggle2);
             initGloss(gl, cylinderProgram, newmap[2]);
@@ -730,10 +749,12 @@ function draw(gl, cylinderProgram) {
             gl.useProgram(cylinderProgram);
             gl.uniform1i(cylinderProgram.u_Clicked, 0);
             gl.uniform1i(cylinderProgram.u_isTree, 1);
+            gl.uniform1i(cylinderProgram.u_LightOn, is_selected_s);
             initPositions(gl, cylinderProgram, selected[1]);
             gl.vertexAttrib4f(cylinderProgram.a_Color, 0.0, 1.0, 0.0, 1.0);
             initLightColor(gl, cylinderProgram);
             initLightDirection(gl, cylinderProgram);
+            initLightPos(gl, cylinderProgram);
             initMatrix(gl, cylinderProgram, toggle1, toggle2);
             initTranslation(gl, cylinderProgram, selected[2], selected[3], selected[4], toggle2);
             gl.uniform1f(cylinderProgram.u_shininessVal, 1.0);
@@ -1053,6 +1074,18 @@ function initLightDirection(gl, cylinderProgram) {
     var lightDirection = new Vector3([1.0, 1.0, 1.0]);
     lightDirection.normalize();     // Normalize
     gl.uniform3fv(cylinderProgram.u_LightDirection, lightDirection.elements);
+}
+
+function initLightPos(gl, cylinderProgram) {
+    gl.useProgram(cylinderProgram);
+    if(toggle2 == 0){ // ortho view
+        var lightPos = new Vector3([-0.5 + selected_s[0], -0.5 + selected_s[1], 0]);
+        gl.uniform3fv(cylinderProgram.u_LightPos, lightPos.elements);
+    }
+    else { // pers view
+        var lightPos = new Vector3([-100 + 200 * selected_s[0], -100 + 200 * selected_s[1], 0]);
+        gl.uniform3fv(cylinderProgram.u_LightPos, lightPos.elements);
+    }
 }
 
 /* initMatrix
