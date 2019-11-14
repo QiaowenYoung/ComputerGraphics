@@ -18,7 +18,7 @@ var VSHADER_SOURCE =
     'uniform mat4 u_scaleMatrix;\n' + // scale
     'uniform mat4 u_rotateMatrix_x;\n' + // rotate by x axis
     'uniform mat4 u_rotateMatrix_z;\n' + // rotate by z axis
-    'uniform bool u_isTree;\n' +
+    'uniform bool u_isTree;\n' + // to choose between drawing tree and drawing sphere
     'void main() {\n' +
     '   if(u_isTree) {\n' +
     '       vec4 v_vertPos4 = u_mvpMatrix * u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * a_Position;\n' +
@@ -46,7 +46,7 @@ var VSHADER_SOURCE =
 
     '       v_Color = vec4(diffuse + vec3(1.0, 1.0, 1.0) * vec3(1.0, 1.0, 1.0) * specular, a_Color.a);\n' +
 
-    '       if (u_LightOn) {\n' + // Add point lighting
+    '       if (!u_LightOn) {\n' + // Add point lighting
     '           v_Color = vec4(diffuse + diffuse2 + vec3(1.0, 1.0, 1.0) * vec3(1.0, 1.0, 1.0) * specular, a_Color.a);\n' +
     '       }\n' +
 
@@ -145,14 +145,14 @@ var rotate_z = new Float32Array([ // rotational matrix: by z axis
 // toggle3: 0 for flat, 1 for smooth, 2 for wireframe
 var toggle1 = 0, toggle2 = 0, toggle3 = 0;
 
-var positions = [];
-var indices = [];
-var colora = 255;
-var selected_s = [0.0, 0.0];
-var is_selected_s = 0;
-var isMoving_s = 0;
-var offxs, offxy;
-var xs0, ys0;
+var positions = []; // positions of points on the sphere
+var indices = []; // indices of sphere points
+var colora = 255; // the rgba.a component of the sphere, useful when picking
+var selected_s = [0.0, 0.0]; // the xy offset of sphere
+var is_selected_s = 0; // 0: sphere is not selected, 1: sphere is selected
+var isMoving_s = 0; // 0: sphere is not moving, 1: sphere is moving
+var offxs, offxy; // offset used when translating sphere
+var xs0, ys0; // offset used when translating sphere
 
 function main() {
     // Retrieve <canvas> element
@@ -825,6 +825,8 @@ function save() {
     arr.push(toggle2);
     arr.push(toggle3);
     arr.push(count);
+    arr.push(is_selected_s);
+    arr = arr.concat(selected_s);
     for (var i = 0; i < count; i++) {
         var newmap = map[i];
         for (var j = 0; j < 9; j++) {
@@ -857,9 +859,13 @@ function load() {
         toggle2 = arr[1];
         toggle3 = arr[2];
         count = arr[3];
+        is_selected_s = arr[4];
+        selected_s = [];
+        selected_s.push(arr[5]);
+        selected_s.push(arr[6]);
         map = [];
         var i;
-        for (i = 4; i < 4 + count * 9; i += 9) {
+        for (i = 7; i < 7 + count * 9; i += 9) {
             var newmap = [];
             for (var j = 0; j < 9; j++) {
                 newmap.push(arr[i + j]);
@@ -1078,14 +1084,14 @@ function initLightDirection(gl, cylinderProgram) {
 
 function initLightPos(gl, cylinderProgram) {
     gl.useProgram(cylinderProgram);
-    if(toggle2 == 0){ // ortho view
-        var lightPos = new Vector3([-0.5 + selected_s[0], -0.5 + selected_s[1], 0]);
-        gl.uniform3fv(cylinderProgram.u_LightPos, lightPos.elements);
-    }
-    else { // pers view
+    //if(toggle2 == 0){ // ortho view
+        //var lightPos = new Vector3([-0.5 + selected_s[0], -0.5 + selected_s[1], 0]);
+        //gl.uniform3fv(cylinderProgram.u_LightPos, lightPos.elements);
+    //}
+    //else { // pers view
         var lightPos = new Vector3([-100 + 200 * selected_s[0], -100 + 200 * selected_s[1], 0]);
         gl.uniform3fv(cylinderProgram.u_LightPos, lightPos.elements);
-    }
+    //}
 }
 
 /* initMatrix
