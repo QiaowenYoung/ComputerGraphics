@@ -4,6 +4,7 @@ var VSHADER_SOURCE =
     'attribute vec4 a_Color;\n' +
     'attribute vec4 a_Color_2;\n' +
     'attribute vec3 a_Normal;\n' +        // Normal
+    'uniform mat4 u_NormalMatrix;\n' +   // Transformation matrix of the normal
     'uniform mat4 u_mvpMatrix;\n' +
     'uniform vec4 u_Translation;\n' +
     'uniform vec3 u_LightColor;\n' +     // Light color
@@ -15,68 +16,52 @@ var VSHADER_SOURCE =
     'uniform mat4 u_scaleMatrix;\n' + // scale
     'uniform mat4 u_rotateMatrix_x;\n' + // rotate by x axis
     'uniform mat4 u_rotateMatrix_z;\n' + // rotate by z axis
+    'uniform bool u_isTree;\n' +
     'void main() {\n' +
-    '  vec4 v_vertPos4 = u_mvpMatrix * u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * a_Position;\n' +
-    '  v_vertPos = vec3(v_vertPos4) / v_vertPos4.w;\n' + // view direction
-    '  gl_Position = u_mvpMatrix * u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * a_Position + u_Translation;\n' +
-    // Make the length of the normal 1.0
-    '  vec3 normal = normalize((u_rotateMatrix_x * u_rotateMatrix_z * vec4(a_Normal,0.0)).xyz);\n' +
-    // Dot product of the light direction and the orientation of a surface (the normal)
-    '  float nDotL = max(dot(u_LightDirection, normal), 0.0);\n' +
-    // Calculate the color due to diffuse reflection
-    '  vec3 diffuse = u_LightColor * a_Color.rgb * nDotL;\n' +
-    // Calculate specular
-    '  float specular = 0.0;\n' +
-    '  if(nDotL > 0.0) {\n' +
-    '    vec3 R = reflect(-u_LightDirection, normal);\n' +
-    '    vec3 V = normalize(-v_vertPos);\n' +
-    '    float specAngle = max(dot(R, V), 0.0);\n' +
-    '    specular = pow(specAngle, u_shininessVal);\n' +
-    '  }\n' +
-    '  v_Color = vec4(diffuse + vec3(1.0, 1.0, 1.0) * vec3(1.0, 1.0, 1.0) * specular, a_Color.a);\n' +
-    '  if (u_Clicked) {\n' + //  Draw in the selected color if mouse is pressed
-    '    v_Color = a_Color_2;\n' +
-    '  }\n' +
+    '   if(u_isTree) {\n' +
+    '       vec4 v_vertPos4 = u_mvpMatrix * u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * a_Position;\n' +
+    '       v_vertPos = vec3(v_vertPos4) / v_vertPos4.w;\n' + // view direction
+    '       gl_Position = u_mvpMatrix * u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * a_Position + u_Translation;\n' +
+            // Make the length of the normal 1.0
+    '       vec3 normal = normalize((u_rotateMatrix_x * u_rotateMatrix_z * vec4(a_Normal,0.0)).xyz);\n' +
+            // Dot product of the light direction and the orientation of a surface (the normal)
+    '       float nDotL = max(dot(u_LightDirection, normal), 0.0);\n' +
+            // Calculate the color due to diffuse reflection
+    '       vec3 diffuse = u_LightColor * a_Color.rgb * nDotL;\n' +
+            // Calculate specular
+    '       float specular = 0.0;\n' +
+    '       if(nDotL > 0.0) {\n' +
+    '           vec3 R = reflect(-u_LightDirection, normal);\n' +
+    '           vec3 V = normalize(-v_vertPos);\n' +
+    '           float specAngle = max(dot(R, V), 0.0);\n' +
+    '           specular = pow(specAngle, u_shininessVal);\n' +
+    '       }\n' +
+    '       v_Color = vec4(diffuse + vec3(1.0, 1.0, 1.0) * vec3(1.0, 1.0, 1.0) * specular, a_Color.a);\n' +
+    '       if (u_Clicked) {\n' + //  Draw in the selected color if mouse is pressed
+    '           v_Color = a_Color_2;\n' +
+    '       }\n' +
+    '   }\n' +
+    '   else {\n' +
+    '       vec4 color = vec4(1.0, 1.0, 0.0, 1.0);\n' + // Sphere color
+    '       gl_Position = u_mvpMatrix * a_Position + u_Translation;\n' +
+            // Calculate a normal to be fit with a model matrix, and make it 1.0 in length
+    '       vec3 normal = normalize(vec3(u_NormalMatrix * vec4(a_Normal, 0.0)));\n' +
+            // Calculate the light direction and make it 1.0 in length
+    '       vec3 lightDirection = normalize(u_LightDirection);\n' +
+            // The dot product of the light direction and the normal
+    '       float nDotL = max(dot(lightDirection, normal), 0.0);\n' +
+            // Calculate the color due to diffuse reflection
+    '       vec3 diffuse = u_LightColor * color.rgb * nDotL;\n' +
+            // Add the surface colors due to diffuse reflection and ambient reflection
+    '       v_Color = vec4(diffuse, color.a);\n' +
+    '       if (u_Clicked) {\n' +
+    '           v_Color = a_Color_2;\n' +
+    '       }\n' +
+    '   }\n' +
     '}\n';
 
 // Fragment shader program
 var FSHADER_SOURCE =
-    '#ifdef GL_ES\n' +
-    'precision mediump float;\n' +
-    '#endif\n' +
-    'varying vec4 v_Color;\n' +
-    'void main() {\n' +
-    '  gl_FragColor = v_Color;\n' +
-    '}\n';
-
-
-// Vertex shader program for sphere
-var vshader =
-    'attribute vec4 a_Position;\n' +
-    'attribute vec4 a_Normal;\n' +
-    'uniform mat4 u_MvpMatrix;\n' +
-    'uniform mat4 u_NormalMatrix;\n' +   // Transformation matrix of the normal
-    'uniform vec3 u_LightColor;\n' +     // Light color
-    'uniform vec3 u_LightDirection;\n' +  // Direction of the light source
-    'uniform vec4 u_Translation;\n' +
-    'varying vec4 v_Color;\n' +
-    'void main() {\n' +
-    '  vec4 color = vec4(1.0, 1.0, 0.0, 1.0);\n' + // Sphere color
-    '  gl_Position = u_MvpMatrix * a_Position + u_Translation;\n' +
-    // Calculate a normal to be fit with a model matrix, and make it 1.0 in length
-    '  vec3 normal = normalize(vec3(u_NormalMatrix * a_Normal));\n' +
-    // Calculate the light direction and make it 1.0 in length
-    '  vec3 lightDirection = normalize(u_LightDirection);\n' +
-    // The dot product of the light direction and the normal
-    '  float nDotL = max(dot(lightDirection, normal), 0.0);\n' +
-    // Calculate the color due to diffuse reflection
-    '  vec3 diffuse = u_LightColor * color.rgb * nDotL;\n' +
-    // Add the surface colors due to diffuse reflection and ambient reflection
-    '  v_Color = vec4(diffuse, color.a);\n' +
-    '}\n';
-
-// Fragment shader program for sphere
-var fshader =
     '#ifdef GL_ES\n' +
     'precision mediump float;\n' +
     '#endif\n' +
@@ -149,6 +134,13 @@ var toggle1 = 0, toggle2 = 0, toggle3 = 0;
 
 var positions = [];
 var indices = [];
+var colora = 255;
+var selected_s = [0.0, 0.0];
+var is_selected_s = 0;
+var isMoving_s = 0;
+var offxs, offxy;
+var xs0, ys0;
+
 function main() {
     // Retrieve <canvas> element
     var canvas = document.getElementById('webgl');
@@ -184,37 +176,19 @@ function main() {
     cylinderProgram.u_rotateMatrix_x = gl.getUniformLocation(cylinderProgram, 'u_rotateMatrix_x');
     cylinderProgram.u_rotateMatrix_z = gl.getUniformLocation(cylinderProgram, 'u_rotateMatrix_z');
     cylinderProgram.u_scaleMatrix = gl.getUniformLocation(cylinderProgram, 'u_scaleMatrix');
+    cylinderProgram.u_NormalMatrix = gl.getUniformLocation(cylinderProgram, 'u_NormalMatrix');
+    cylinderProgram.u_isTree = gl.getUniformLocation(cylinderProgram, 'u_isTree');
 
     if (cylinderProgram.a_Position < 0 || cylinderProgram.a_Color < 0 || cylinderProgram.a_Color_2 < 0 ||
         cylinderProgram.a_Normal < 0 || cylinderProgram.u_ViewMatrix < 0 || cylinderProgram.u_ProjMatrix < 0 ||
         cylinderProgram.u_Translation < 0 || cylinderProgram.u_LightColor < 0 || cylinderProgram.u_LightDirection < 0 ||
         cylinderProgram.u_shininessVal < 0 || cylinderProgram.u_Clicked < 0 || cylinderProgram.u_rotateMatrix_x < 0 ||
-        cylinderProgram.u_rotateMatrix_z < 0 || cylinderProgram.u_scaleMatrix < 0) {
+        cylinderProgram.u_rotateMatrix_z < 0 || cylinderProgram.u_scaleMatrix < 0 || cylinderProgram.u_NormalMatrix < 0 ||
+        cylinderProgram.u_isTree < 0) {
         console.log('Failed to locate variables for cylinder');
         return -1;
     }
     /* end */
-
-    var sphereProgram = createProgram(gl, vshader, fshader);
-    if (!sphereProgram) {
-        console.log('Failed to create program');
-        return -1;
-    }
-
-    sphereProgram.a_Position = gl.getAttribLocation(sphereProgram, 'a_Position');
-    sphereProgram.a_Normal = gl.getAttribLocation(sphereProgram, 'a_Normal');
-    sphereProgram.u_MvpMatrix = gl.getUniformLocation(sphereProgram, 'u_MvpMatrix');
-    sphereProgram.u_NormalMatrix = gl.getUniformLocation(sphereProgram, 'u_NormalMatrix');
-    sphereProgram.u_Translation = gl.getUniformLocation(sphereProgram, 'u_Translation');
-    sphereProgram.u_LightColor = gl.getUniformLocation(sphereProgram, 'u_LightColor');
-    sphereProgram.u_LightDirection = gl.getUniformLocation(sphereProgram, 'u_LightDirection');
-
-    if (sphereProgram.a_Position < 0 || sphereProgram.a_Normal < 0 || sphereProgram.u_MvpMatrix < 0 ||
-        sphereProgram.u_NormalMatrix < 0 || sphereProgram.u_Translation < 0 || sphereProgram.u_LightColor < 0 ||
-        sphereProgram.u_LightDirection < 0) {
-        console.log('Failed to locte variables for sphere');
-        return -1;
-    }
 
     setPositions();
 
@@ -223,10 +197,9 @@ function main() {
     gl.enable(gl.DEPTH_TEST);
     // Clear color and depth buffer
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    //drawSphere(gl, sphereProgram);
 
     canvas.onmousedown = function (ev) {
-        if (selected.length != 0 && ev.button == 0) { // translation
+        if (selected.length != 0 && ev.button == 0) { // translation of a tree
             console.log('translation: mousedown');
             isMoving = 1;
             var x = ev.clientX; // x coordinate of a mouse pointer
@@ -250,7 +223,7 @@ function main() {
             x0 = x;
             y0 = y;
             /* end */
-       }
+        }
         else if (selected.length != 0 && ev.button == 2) { // rotation
             console.log('rotate: mousedown');
             isRotating = 1;
@@ -263,6 +236,20 @@ function main() {
             offx2 = x;
             offy2 = y;
         }
+        else if (is_selected_s == 1 && ev.button == 0) { // translation of the sphere
+            console.log('translation of the sphere: mousedown');
+            isMoving_s = 1;
+            var x = ev.clientX; // x coordinate of a mouse pointer
+            var y = ev.clientY; // y coordinate of a mouse pointer
+            var rect = ev.target.getBoundingClientRect();
+
+            x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
+            y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
+            offxs = x;
+            offys = y;
+            xs0 = x;
+            ys0 = y;
+        }
         else if (ev.which == 2) { // middle clickdown
             console.log('middle click');
             var y = ev.clientY; // y coordinate of a mouse pointer
@@ -273,7 +260,7 @@ function main() {
             isUp = 1;
         }
         else {
-            redraw(ev, gl, canvas, cylinderProgram, sphereProgram);
+            redraw(ev, gl, canvas, cylinderProgram);
         }
     };
 
@@ -294,7 +281,21 @@ function main() {
              */
             offx1 = x;
             offy1 = y;
-            draw(gl, cylinderProgram, sphereProgram);
+            draw(gl, cylinderProgram);
+        }
+        if (isMoving_s) { // translation of the sphere
+            console.log('translation of the sphere: mousemove');
+            var x = ev.clientX; // x coordinate of a mouse pointer
+            var y = ev.clientY; // y coordinate of a mouse pointer
+            var rect = ev.target.getBoundingClientRect();
+
+            x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
+            y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
+            selected_s[0] += x - offxs;
+            selected_s[1] += y - offys;
+            offxs = x;
+            offys = y;
+            draw(gl, cylinderProgram);
         }
         if (isRotating == 1) { // rotation
             console.log('rotation: mousemove');
@@ -323,7 +324,7 @@ function main() {
             }
             offx2 = x;
             offy2 = y;
-            draw(gl, cylinderProgram, sphereProgram);
+            draw(gl, cylinderProgram);
         }
         else if (isRotating == 2) { // rotate by x axis
             console.log('rotation: mousemove, rotate by x axis');
@@ -337,7 +338,7 @@ function main() {
              */
             selected[6] = selected[6] + 2 * Math.PI * (y - offy2);
             offy2 = y;
-            draw(gl, cylinderProgram, sphereProgram);
+            draw(gl, cylinderProgram);
         }
         else if (isRotating == 3) { // rotate by z axis
             console.log('rotation: mousemove, rotate by z axis');
@@ -347,7 +348,7 @@ function main() {
             x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
             selected[7] = selected[7] - 2 * Math.PI * (x - offx2);
             offx2 = x;
-            draw(gl, cylinderProgram, sphereProgram);
+            draw(gl, cylinderProgram);
         }
     }
 
@@ -366,10 +367,10 @@ function main() {
             offx1 = x;
             offy1 = y;
             if (x0 == x && y0 == y) { // the click means to deselecte the tree; see explanations in line 178~186
-                redraw(ev, gl, canvas, cylinderProgram, sphereProgram);
+                redraw(ev, gl, canvas, cylinderProgram);
             }
             else {
-                draw(gl, cylinderProgram, sphereProgram);
+                draw(gl, cylinderProgram);
             }
         }
         else if (ev.button == 2 && selected.length != 0 && isRotating != 0) { // rotation ends
@@ -389,7 +390,27 @@ function main() {
                 offx2 = x;
             }
             isRotating = 0;
-            draw(gl, cylinderProgram, sphereProgram);
+            draw(gl, cylinderProgram);
+        }
+        else if (ev.button == 0 && isMoving_s == 1) { // translation of the sphere ends
+            console.log('translation of the sphere: mouseup');
+            isMoving_s = 0;
+            var x = ev.clientX; // x coordinate of a mouse pointer
+            var y = ev.clientY; // y coordinate of a mouse pointer
+            var rect = ev.target.getBoundingClientRect();
+
+            x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
+            y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
+            selected_s[0] += x - offxs;
+            selected_s[1] += y - offys;
+            offxs = x;
+            offys = y;
+            if (xs0 == x && ys0 == y) { // click means to deselect the sphere
+                redraw(ev, gl, canvas, cylinderProgram);
+            }
+            else {
+                draw(gl, cylinderProgram);
+            }
         }
         else if (ev.which == 2 && selected.length != 0 && isUp == 1) { // translation in z direction ends
             console.log('middle up');
@@ -400,7 +421,7 @@ function main() {
             selected[4] += (offz - y) / 5; // divided by 5 so that you may see how the tree disappears more smoothly
             offz = y;
             isUp = 0;
-            draw(gl, cylinderProgram, sphereProgram);
+            draw(gl, cylinderProgram);
         }
     }
 
@@ -410,17 +431,17 @@ function main() {
             console.log('scaling');
             selected[5] = selected[5] - selected[5] * d / 5000;
         }
-        draw(gl, cylinderProgram, sphereProgram);
+        draw(gl, cylinderProgram);
     };
 
     var checkbox1 = document.getElementById('toggle1');
     checkbox1.addEventListener('change', function () {
         if (checkbox1.checked) {
             toggle1 = 1;
-            draw(gl, cylinderProgram, sphereProgram);
+            draw(gl, cylinderProgram);
         } else {
             toggle1 = 0;
-            draw(gl, cylinderProgram, sphereProgram);
+            draw(gl, cylinderProgram);
         }
     });
 
@@ -428,32 +449,32 @@ function main() {
     checkbox2.addEventListener('change', function () {
         if (checkbox2.checked) {
             toggle2 = 1;
-            draw(gl, cylinderProgram, sphereProgram);
+            draw(gl, cylinderProgram);
         } else {
             toggle2 = 0;
-            draw(gl, cylinderProgram, sphereProgram);
+            draw(gl, cylinderProgram);
         }
     });
 
-    draw(gl, cylinderProgram, sphereProgram);
+    draw(gl, cylinderProgram);
 
     var rad = document.form.tree;
     rad[0].addEventListener('change', function () {
         toggle3 = 0;
-        draw(gl, cylinderProgram, sphereProgram);
+        draw(gl, cylinderProgram);
     });
     rad[1].addEventListener('change', function () {
         toggle3 = 1;
-        draw(gl, cylinderProgram, sphereProgram);
+        draw(gl, cylinderProgram);
     });
     rad[2].addEventListener('change', function () {
         toggle3 = 2;
-        draw(gl, cylinderProgram, sphereProgram);
+        draw(gl, cylinderProgram);
     });
 
     var submit = document.getElementById('submit');
     submit.addEventListener('click', function () {
-        draw(gl, cylinderProgram, sphereProgram);
+        draw(gl, cylinderProgram);
         // Change radio value based on the import
         if (toggle1 == 0) {
             checkbox1.checked = false;
@@ -485,7 +506,7 @@ function main() {
  * use:
  * redraw the scene after a shift+click
  */
-function redraw(ev, gl, canvas, cylinderProgram, sphereProgram) {
+function redraw(ev, gl, canvas, cylinderProgram) {
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
     gl.enable(gl.DEPTH_TEST);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -533,6 +554,7 @@ function redraw(ev, gl, canvas, cylinderProgram, sphereProgram) {
         initGloss(gl, cylinderProgram, newmap[2]);
         initNormals(gl, cylinderProgram, newmap[2], 0);
         gl.uniform1i(cylinderProgram.u_Clicked, 1);
+        gl.uniform1i(cylinderProgram.u_isTree, 1); // draw trees
         gl.vertexAttrib4f(cylinderProgram.a_Color_2, color, 0.0, 0.0, 1.0);
         initScale(gl, cylinderProgram);
         initRotate(gl, cylinderProgram);
@@ -556,12 +578,13 @@ function redraw(ev, gl, canvas, cylinderProgram, sphereProgram) {
             gl.drawArrays(gl.LINES, 0, len);
         }
     }
+    drawSphere(gl, cylinderProgram);
 
     var pixels = new Uint8Array(4); // Array for storing the pixel value
     gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
     if (pixels[0] + pixels[1] + pixels[2] + pixels[3] == 1020) {
         // click on blank, need to check current tree and store its status back to map
-        if (selected.length != 0) {
+        if (selected.length != 0) { // deselect a tree
             var newmap = map[selected[0]]; // get the selected tree in map
             // update selected tree's status
             map[selected[0]] = [];
@@ -575,40 +598,48 @@ function redraw(ev, gl, canvas, cylinderProgram, sphereProgram) {
             map[selected[0]] = newmap;
             selected = [];
         }
+        else if (is_selected_s != 0) { // deselect the sphere
+            is_selected_s = 0;
+        }
         else {
             console.log('create a tree')
-            click(ev, gl, canvas, cylinderProgram, sphereProgram);
+            click(ev, gl, canvas, cylinderProgram);
         }
     }
 
-    if (selected.length == 0) { // no other tree currently selected
-        for (var i = 0; i < count; i++) {
-            var newmap = map[i];
-            if (pixels[0] == newmap[0] && pixels[0] + pixels[1] + pixels[2] + pixels[3] != 1020) { // get the clicked tree's info
-                console.log('select a tree');
-                selected.push(i); // id in map
-                selected.push(newmap[2]); // left or right
-                selected.push(newmap[3]); // x
-                selected.push(newmap[4]); // y
-                selected.push(newmap[5]); // z
-                selected.push(newmap[6]); // scaling factor
-                selected.push(newmap[7]); // rotational angle by x axis
-                selected.push(newmap[8]); // rotational angle by z axis
-                newmap[1] = 1; // currently selected
-                map[i] = [];
-                map[i] = newmap;
-                break;
+    else { // click on tree or sphere
+        if (selected.length == 0) { // no other tree currently selected
+            for (var i = 0; i < count; i++) {
+                var newmap = map[i];
+                if (pixels[0] == newmap[0] && pixels[0] + pixels[1] + pixels[2] + pixels[3] != 1020) { // get the clicked tree's info
+                    console.log('select a tree');
+                    selected.push(i); // id in map
+                    selected.push(newmap[2]); // left or right
+                    selected.push(newmap[3]); // x
+                    selected.push(newmap[4]); // y
+                    selected.push(newmap[5]); // z
+                    selected.push(newmap[6]); // scaling factor
+                    selected.push(newmap[7]); // rotational angle by x axis
+                    selected.push(newmap[8]); // rotational angle by z axis
+                    newmap[1] = 1; // currently selected
+                    map[i] = [];
+                    map[i] = newmap;
+                    break;
+                }
+            }
+            if (selected.length == 0) { // click is not on a tree, but on the sphere
+                console.log('select a sphere');
+                is_selected_s = 1;
             }
         }
     }
-    draw(gl, cylinderProgram, sphereProgram);
+    draw(gl, cylinderProgram);
 }
 
-function draw(gl, cylinderProgram, sphereProgram) {
+function draw(gl, cylinderProgram) {
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
     gl.enable(gl.DEPTH_TEST);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.useProgram(cylinderProgram);
     for (var i = 0; i < count; i++) {
         var newmap = map[i];
         if (newmap[1] == 0) {
@@ -640,6 +671,7 @@ function draw(gl, cylinderProgram, sphereProgram) {
 
             gl.useProgram(cylinderProgram);
             gl.uniform1i(cylinderProgram.u_Clicked, 0);
+            gl.uniform1i(cylinderProgram.u_isTree, 1);
             initPositions(gl, cylinderProgram, newmap[2]);
             initColors(gl, cylinderProgram, newmap[2]);
             initLightColor(gl, cylinderProgram);
@@ -697,6 +729,7 @@ function draw(gl, cylinderProgram, sphereProgram) {
 
             gl.useProgram(cylinderProgram);
             gl.uniform1i(cylinderProgram.u_Clicked, 0);
+            gl.uniform1i(cylinderProgram.u_isTree, 1);
             initPositions(gl, cylinderProgram, selected[1]);
             gl.vertexAttrib4f(cylinderProgram.a_Color, 0.0, 1.0, 0.0, 1.0);
             initLightColor(gl, cylinderProgram);
@@ -705,7 +738,7 @@ function draw(gl, cylinderProgram, sphereProgram) {
             initTranslation(gl, cylinderProgram, selected[2], selected[3], selected[4], toggle2);
             gl.uniform1f(cylinderProgram.u_shininessVal, 1.0);
             initScale(gl, cylinderProgram);
-            initRotate(gl, cylinderProgram);
+            initRotate(gl, cylinderProgram)
             var len;
             if (selected[1] == 0) {
                 len = cylinderl.length / 3;
@@ -738,7 +771,7 @@ function draw(gl, cylinderProgram, sphereProgram) {
             map[selected[0]] = newmap;
         }
     }
-    drawSphere(gl, sphereProgram);
+    drawSphere(gl, cylinderProgram);
 }
 
 /* save: refer to https://jsfiddle.net/4v26ebtp/
@@ -819,7 +852,7 @@ function load() {
     }
 }
 
-function click(ev, gl, canvas, cylinderProgram, sphereProgram) {
+function click(ev, gl, canvas, cylinderProgram) {
     var x = ev.clientX; // x coordinate of a mouse pointer
     var y = ev.clientY; // y coordinate of a mouse pointer
     var rect = ev.target.getBoundingClientRect();
@@ -853,7 +886,7 @@ function click(ev, gl, canvas, cylinderProgram, sphereProgram) {
         newmap.push(0.0); // rotational angle by z axis
         map.push(newmap);
     }
-    draw(gl, cylinderProgram, sphereProgram);
+    draw(gl, cylinderProgram);
 }
 
 /* initPositions
@@ -1119,19 +1152,20 @@ function initRotate(gl, cylinderProgram) {
     gl.uniformMatrix4fv(cylinderProgram.u_rotateMatrix_z, false, rotate_z);
 }
 
-function drawSphere(gl, sphereProgram) {
-    gl.useProgram(sphereProgram);
+function drawSphere(gl, cylinderProgram) {
+    gl.useProgram(cylinderProgram);
+    gl.uniform1i(cylinderProgram.u_isTree, 0);
     // Set the vertex coordinates, the color and the normal
-    var n = initVertexBuffers(gl, sphereProgram);
+    var n = initVertexBuffers(gl, cylinderProgram);
     if (n < 0) {
         console.log('Failed to set the vertex information');
         return;
     }
 
-    // Set the light color (white)
-    gl.uniform3f(sphereProgram.u_LightColor, 1.0, 1.0, 1.0);
+    gl.uniform3f(cylinderProgram.u_LightColor, 1.0, 1.0, 1.0);
     // Set the light direction (in the world coordinate)
-    gl.uniform3f(sphereProgram.u_LightDirection, 1.0, 1.0, 1.0);
+    gl.uniform3f(cylinderProgram.u_LightDirection, 1.0, 1.0, 1.0);
+    gl.vertexAttrib4f(cylinderProgram.a_Color_2, colora, 0.0, 0.0, 1.0);
 
     var modelMatrix = new Matrix4();  // Model matrix
     var mvpMatrix = new Matrix4();    // Model view projection matrix
@@ -1142,35 +1176,35 @@ function drawSphere(gl, sphereProgram) {
         if (toggle2 == 0) { // ortho view
             mvpMatrix.setOrtho(-200, 200, -200, 200, -1000, 1000);
             mvpMatrix.lookAt(0, 0, 200, 0, 0, 0, 0, 1, 0);
-            gl.uniform4f(sphereProgram.u_Translation, -0.5, -0.5, 0, 0);
+            gl.uniform4f(cylinderProgram.u_Translation, -0.5 + selected_s[0], -0.5 + selected_s[1], 0, 0);
         }
         else { // top + pers
-            mvpMatrix.setPerspective(90, canvas.width / canvas.height, 1, 1000);
+            mvpMatrix.setPerspective(90, 1, 1, 1000);
             mvpMatrix.lookAt(0, 0, 200, 0, 0, 0, 0, 1, 0);
-            gl.uniform4f(sphereProgram.u_Translation, -100, -100, 0, 0);
+            gl.uniform4f(cylinderProgram.u_Translation, -100 + 200 * selected_s[0], -100 + 200 * selected_s[1], 0, 0);
         }
     }
     else {
         if (toggle2 == 0) { // side + ortho
             mvpMatrix.setOrtho(-200, 200, -200, 200, -1000, 1000);
             mvpMatrix.lookAt(0, -200, 75, 0, 0, 0, 0, 1, 0);
-            gl.uniform4f(sphereProgram.u_Translation, -0.5, -0.5, 0, 0);
+            gl.uniform4f(cylinderProgram.u_Translation, -0.5 + selected_s[0], -0.5 + selected_s[1], 0, 0);
         }
         else { // side + pers
-            mvpMatrix.setPerspective(90, canvas.width / canvas.height, 1, 1000);
+            mvpMatrix.setPerspective(90, 1, 1, 1000);
             mvpMatrix.lookAt(0, -200, 75, 0, 0, 0, 0, 1, 0);
-            gl.uniform4f(sphereProgram.u_Translation, -100, -100, 0, 0);
+            gl.uniform4f(cylinderProgram.u_Translation, -100 + 200 * selected_s[0], -100 + 200 * selected_s[1], 0, 0);
         }
     }
     mvpMatrix.multiply(modelMatrix);
     // Pass the model view projection matrix to u_MvpMatrix
-    gl.uniformMatrix4fv(sphereProgram.u_MvpMatrix, false, mvpMatrix.elements);
+    gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
 
     // Calculate the matrix to transform the normal based on the model matrix
     normalMatrix.setInverseOf(modelMatrix);
     normalMatrix.transpose();
     // Pass the transformation matrix for normals to u_NormalMatrix
-    gl.uniformMatrix4fv(sphereProgram.u_NormalMatrix, false, normalMatrix.elements);
+    gl.uniformMatrix4fv(cylinderProgram.u_NormalMatrix, false, normalMatrix.elements);
 
     // Draw the cube(Note that the 3rd argument is the gl.UNSIGNED_SHORT)
     gl.drawElements(gl.TRIANGLES, n, gl.UNSIGNED_SHORT, 0);
@@ -1178,14 +1212,14 @@ function drawSphere(gl, sphereProgram) {
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
 }
 
-function initVertexBuffers(gl, sphereProgram) { // Create a sphere
-    gl.useProgram(sphereProgram);
-    
+function initVertexBuffers(gl, cylinderProgram) { // Create a sphere
+    gl.useProgram(cylinderProgram);
+
     // Write the vertex property to buffers (coordinates and normals)
     // Same data can be used for vertex and normal
     // In order to make it intelligible, another buffer is prepared separately
-    if (!initArrayBuffer(gl, sphereProgram, sphereProgram.a_Position, new Float32Array(positions), gl.FLOAT, 3)) return -1;
-    if (!initArrayBuffer(gl, sphereProgram, sphereProgram.a_Normal, new Float32Array(positions), gl.FLOAT, 3)) return -1;
+    if (!initArrayBuffer(gl, cylinderProgram, cylinderProgram.a_Position, new Float32Array(positions), gl.FLOAT, 3)) return -1;
+    if (!initArrayBuffer(gl, cylinderProgram, cylinderProgram.a_Normal, new Float32Array(positions), gl.FLOAT, 3)) return -1;
 
     // Unbind the buffer object
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
