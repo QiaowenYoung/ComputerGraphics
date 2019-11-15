@@ -22,13 +22,13 @@ var VSHADER_SOURCE =
     // Make the length of the normal 1.0
     '  vec3 normal = normalize((u_rotateMatrix_x * u_rotateMatrix_z * vec4(a_Normal,0.0)).xyz);\n' +
     // Dot product of the light direction and the orientation of a surface (the normal)
-    '  float nDotL = max(dot(u_LightDirection, normal), 0.0);\n' +
+    '  float nDotL = max(dot(normalize(u_LightDirection), normal), 0.0);\n' +
     // Calculate the color due to diffuse reflection
     '  vec3 diffuse = u_LightColor * a_Color.rgb * nDotL;\n' +
     // Calculate specular
     '  float specular = 0.0;\n' +
     '  if(nDotL > 0.0) {\n' +
-    '    vec3 R = reflect(-u_LightDirection, normal);\n' +
+    '    vec3 R = reflect(-normalize(u_LightDirection), normal);\n' +
     '    vec3 V = normalize(-v_vertPos);\n' +
     '    float specAngle = max(dot(R, V), 0.0);\n' +
     '    specular = pow(specAngle, u_shininessVal);\n' +
@@ -977,7 +977,7 @@ function initMatrix(gl, cylinderProgram, tag1, tag2) {
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
         else {
-            mvpMatrix.setPerspective(90, 1, 10, 1000);
+            mvpMatrix.setPerspective(90, 1, 100, 1000);
             mvpMatrix.lookAt(0, 0, 200, 0, 0, 0, 0, 1, 0);
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
@@ -989,7 +989,7 @@ function initMatrix(gl, cylinderProgram, tag1, tag2) {
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
         else {
-            mvpMatrix.setPerspective(90, 1, 10, 1000);
+            mvpMatrix.setPerspective(90, 1, 100, 1000);
             mvpMatrix.lookAt(0, -200, 75, 0, 0, 0, 0, 1, 0);
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
