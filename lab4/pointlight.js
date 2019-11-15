@@ -14,13 +14,13 @@ var VSHADER_SOURCE =
     'varying vec3 v_vertPos;\n' + // View Direction
     'uniform float u_shininessVal;\n' + // 20 or 5
     'uniform bool u_Clicked;\n' + // Mouse is pressed
-    'uniform bool u_LightOn;\n' + // Turn on/off the point lighting
+    'uniform bool u_LightOff;\n' + // Turn on/off the point lighting
     'uniform mat4 u_scaleMatrix;\n' + // scale
     'uniform mat4 u_rotateMatrix_x;\n' + // rotate by x axis
     'uniform mat4 u_rotateMatrix_z;\n' + // rotate by z axis
     'uniform bool u_isTree;\n' + // to choose between drawing tree and drawing sphere
     'void main() {\n' +
-    '   if(u_isTree) {\n' +
+    '   if(u_isTree) {\n' + // draw trees
     '       vec4 v_vertPos4 = u_mvpMatrix * u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * a_Position;\n' +
     '       v_vertPos = vec3(v_vertPos4) / v_vertPos4.w;\n' + // view direction
     '       gl_Position = u_mvpMatrix * u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * a_Position + u_Translation;\n' +
@@ -38,24 +38,37 @@ var VSHADER_SOURCE =
     '           float specAngle = max(dot(R, V), 0.0);\n' +
     '           specular = pow(specAngle, u_shininessVal);\n' +
     '       }\n' +
+    '       vec3 s = vec3(1.0, 1.0, 1.0) * vec3(1.0, 1.0, 1.0) * specular;\n' +
 
             // Point light
-    '       vec3 lightDirection2 = normalize(u_LightPos - vec3(a_Position));\n' +
+    '       vec3 lightDirection2 = normalize(u_LightPos - vec3(u_mvpMatrix * u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * a_Position + u_Translation));\n' +
     '       float nDotL2 = max(dot(lightDirection2, normal), 0.0);\n' +
     '       vec3 diffuse2 = vec3(0.5, 0.5, 1) * a_Color.rgb * nDotL2;\n' +
+    '       float specular2 = 0.0;\n' +
+    '       if(nDotL2 > 0.0) {\n' +
+    '           vec3 R2 = reflect(-lightDirection2, normal);\n' +
+    '           vec3 V2 = normalize(-v_vertPos);\n' +
+    '           float specAngle2 = max(dot(R2, V2), 0.0);\n' +
+    '           specular2 = pow(specAngle2, u_shininessVal);\n' +
+    '       }\n' +
+    '       vec3 s2 = vec3(0.5, 0.5, 1.0) * vec3(1.0, 1.0, 1.0) * specular2;\n' +
 
-    '       v_Color = vec4(diffuse + vec3(1.0, 1.0, 1.0) * vec3(1.0, 1.0, 1.0) * specular, a_Color.a);\n' +
+    '       v_Color = vec4(diffuse + s, a_Color.a);\n' +
 
-    '       if (!u_LightOn) {\n' + // Add point lighting
-    '           v_Color = vec4(diffuse + diffuse2 + vec3(1.0, 1.0, 1.0) * vec3(1.0, 1.0, 1.0) * specular, a_Color.a);\n' +
+    '       if (!u_LightOff) {\n' + // u_LightOff == 0, meaning that the light is turned on
+    '           v_Color = vec4(diffuse + diffuse2 + s + s2, a_Color.a);\n' +
     '       }\n' +
 
     '       if (u_Clicked) {\n' + //  Draw in the selected color if mouse is pressed
     '           v_Color = a_Color_2;\n' +
     '       }\n' +
     '   }\n' +
-    '   else {\n' +
+
+    '   else {\n' + // draw sphere
     '       vec4 color = vec4(1.0, 1.0, 0.0, 1.0);\n' + // Sphere color
+    '       if (u_LightOff) {\n' +
+    '           color = vec4(0.5, 0.5, 0.0, 1.0);\n' + // if turned off, make it a little darker
+    '       }\n' +
     '       gl_Position = u_mvpMatrix * a_Position + u_Translation;\n' +
             // Calculate a normal to be fit with a model matrix, and make it 1.0 in length
     '       vec3 normal = normalize(vec3(u_NormalMatrix * vec4(a_Normal, 0.0)));\n' +
@@ -65,8 +78,17 @@ var VSHADER_SOURCE =
     '       float nDotL = max(dot(lightDirection, normal), 0.0);\n' +
             // Calculate the color due to diffuse reflection
     '       vec3 diffuse = u_LightColor * color.rgb * nDotL;\n' +
-            // Add the surface colors due to diffuse reflection and ambient reflection
-    '       v_Color = vec4(diffuse, color.a);\n' +
+    '       float specular = 0.0;\n' +
+    '       if(nDotL > 0.0) {\n' +
+    '           vec3 R = reflect(-lightDirection, normal);\n' +
+    '           vec3 V = normalize(-vec3(u_mvpMatrix * a_Position));\n' +
+    '           float specAngle = max(dot(R, V), 0.0);\n' +
+    '           specular = pow(specAngle, 20.0);\n' +
+    '       }\n' +
+    '       vec3 s = vec3(1.0, 1.0, 1.0) * vec3(1.0, 1.0, 1.0) * specular;\n' +
+
+    '       v_Color = vec4(diffuse + s, color.a);\n' +
+
     '       if (u_Clicked) {\n' +
     '           v_Color = a_Color_2;\n' +
     '       }\n' +
@@ -186,7 +208,7 @@ function main() {
     cylinderProgram.u_LightDirection = gl.getUniformLocation(cylinderProgram, 'u_LightDirection');
     cylinderProgram.u_shininessVal = gl.getUniformLocation(cylinderProgram, 'u_shininessVal');
     cylinderProgram.u_Clicked = gl.getUniformLocation(cylinderProgram, 'u_Clicked');
-    cylinderProgram.u_LightOn = gl.getUniformLocation(cylinderProgram, 'u_LightOn');
+    cylinderProgram.u_LightOff = gl.getUniformLocation(cylinderProgram, 'u_LightOff');
     cylinderProgram.u_rotateMatrix_x = gl.getUniformLocation(cylinderProgram, 'u_rotateMatrix_x');
     cylinderProgram.u_rotateMatrix_z = gl.getUniformLocation(cylinderProgram, 'u_rotateMatrix_z');
     cylinderProgram.u_scaleMatrix = gl.getUniformLocation(cylinderProgram, 'u_scaleMatrix');
@@ -199,7 +221,7 @@ function main() {
         cylinderProgram.u_Translation < 0 || cylinderProgram.u_LightColor < 0 || cylinderProgram.u_LightDirection < 0 ||
         cylinderProgram.u_shininessVal < 0 || cylinderProgram.u_Clicked < 0 || cylinderProgram.u_rotateMatrix_x < 0 ||
         cylinderProgram.u_rotateMatrix_z < 0 || cylinderProgram.u_scaleMatrix < 0 || cylinderProgram.u_NormalMatrix < 0 ||
-        cylinderProgram.u_isTree < 0 || cylinderProgram.u_LightPos < 0 || cylinderProgram.u_LightOn < 0) {
+        cylinderProgram.u_isTree < 0 || cylinderProgram.u_LightPos < 0 || cylinderProgram.u_LightOff < 0) {
         console.log('Failed to locate variables for cylinder');
         return -1;
     }
@@ -251,8 +273,7 @@ function main() {
             offx2 = x;
             offy2 = y;
         }
-        else if (is_selected_s == 1 && ev.button == 0) { // translation of the sphere
-            console.log('translation of the sphere: mousedown');
+        else if (ev.button == 0) { // translation of the sphere
             isMoving_s = 1;
             var x = ev.clientX; // x coordinate of a mouse pointer
             var y = ev.clientY; // y coordinate of a mouse pointer
@@ -299,7 +320,6 @@ function main() {
             draw(gl, cylinderProgram);
         }
         if (isMoving_s) { // translation of the sphere
-            console.log('translation of the sphere: mousemove');
             var x = ev.clientX; // x coordinate of a mouse pointer
             var y = ev.clientY; // y coordinate of a mouse pointer
             var rect = ev.target.getBoundingClientRect();
@@ -408,7 +428,6 @@ function main() {
             draw(gl, cylinderProgram);
         }
         else if (ev.button == 0 && isMoving_s == 1) { // translation of the sphere ends
-            console.log('translation of the sphere: mouseup');
             isMoving_s = 0;
             var x = ev.clientX; // x coordinate of a mouse pointer
             var y = ev.clientY; // y coordinate of a mouse pointer
@@ -571,7 +590,7 @@ function redraw(ev, gl, canvas, cylinderProgram) {
         initNormals(gl, cylinderProgram, newmap[2], 0);
         gl.uniform1i(cylinderProgram.u_Clicked, 1);
         gl.uniform1i(cylinderProgram.u_isTree, 1); // draw trees
-        gl.uniform1i(cylinderProgram.u_LightOn, is_selected_s);
+        gl.uniform1i(cylinderProgram.u_LightOff, is_selected_s);
         gl.vertexAttrib4f(cylinderProgram.a_Color_2, color, 0.0, 0.0, 1.0);
         initScale(gl, cylinderProgram);
         initRotate(gl, cylinderProgram);
@@ -615,9 +634,6 @@ function redraw(ev, gl, canvas, cylinderProgram) {
             map[selected[0]] = newmap;
             selected = [];
         }
-        else if (is_selected_s != 0) { // deselect the sphere
-            is_selected_s = 0;
-        }
         else {
             console.log('create a tree')
             click(ev, gl, canvas, cylinderProgram);
@@ -645,8 +661,14 @@ function redraw(ev, gl, canvas, cylinderProgram) {
                 }
             }
             if (selected.length == 0) { // click is not on a tree, but on the sphere
-                console.log('select a sphere');
-                is_selected_s = 1;
+                if(is_selected_s == 0) {
+                    console.log('turn off the light');
+                    is_selected_s = 1;
+                }
+                else {
+                    console.log('turn on the light');
+                    is_selected_s = 0;
+                }
             }
         }
     }
@@ -689,7 +711,7 @@ function draw(gl, cylinderProgram) {
             gl.useProgram(cylinderProgram);
             gl.uniform1i(cylinderProgram.u_Clicked, 0);
             gl.uniform1i(cylinderProgram.u_isTree, 1);
-            gl.uniform1i(cylinderProgram.u_LightOn, is_selected_s);
+            gl.uniform1i(cylinderProgram.u_LightOff, is_selected_s);
             initPositions(gl, cylinderProgram, newmap[2]);
             initColors(gl, cylinderProgram, newmap[2]);
             initLightColor(gl, cylinderProgram);
@@ -749,7 +771,7 @@ function draw(gl, cylinderProgram) {
             gl.useProgram(cylinderProgram);
             gl.uniform1i(cylinderProgram.u_Clicked, 0);
             gl.uniform1i(cylinderProgram.u_isTree, 1);
-            gl.uniform1i(cylinderProgram.u_LightOn, is_selected_s);
+            gl.uniform1i(cylinderProgram.u_LightOff, is_selected_s);
             initPositions(gl, cylinderProgram, selected[1]);
             gl.vertexAttrib4f(cylinderProgram.a_Color, 0.0, 1.0, 0.0, 1.0);
             initLightColor(gl, cylinderProgram);
@@ -759,7 +781,7 @@ function draw(gl, cylinderProgram) {
             initTranslation(gl, cylinderProgram, selected[2], selected[3], selected[4], toggle2);
             gl.uniform1f(cylinderProgram.u_shininessVal, 1.0);
             initScale(gl, cylinderProgram);
-            initRotate(gl, cylinderProgram)
+            initRotate(gl, cylinderProgram);
             var len;
             if (selected[1] == 0) {
                 len = cylinderl.length / 3;
@@ -1082,8 +1104,20 @@ function initLightDirection(gl, cylinderProgram) {
     gl.uniform3fv(cylinderProgram.u_LightDirection, lightDirection.elements);
 }
 
+/* initLightPos
+ * input:
+ * gl, cylinderProgram
+ * output:
+ * none
+ * use:
+ * initialize cylinderProgram.u_LightPos using the point light's (x, y) coordinates
+ */
 function initLightPos(gl, cylinderProgram) {
     gl.useProgram(cylinderProgram);
+
+    /* lightPos[0] and lightPos[1] store the (x, y) coordinates of the light source
+     * I need to multiply them with the canvas's dimensions to make the light position right.
+     */ 
     var lightPos = new Vector3([-100 + 200 * selected_s[0], -100 + 200 * selected_s[1], 0]);
     gl.uniform3fv(cylinderProgram.u_LightPos, lightPos.elements);
 }
@@ -1166,6 +1200,14 @@ function initGloss(gl, cylinderProgram, tag) {
     }
 }
 
+/* initScale
+ * input: 
+ * gl, cylinderProgram
+ * output:
+ * none
+ * use:
+ * initialize cylinderProgram.u_scaleMatrix using the array "scale" (line133)
+ */
 function initScale(gl, cylinderProgram) {
     gl.useProgram(cylinderProgram);
     gl.uniformMatrix4fv(cylinderProgram.u_scaleMatrix, false, scale);
@@ -1187,16 +1229,17 @@ function initRotate(gl, cylinderProgram) {
 
 function drawSphere(gl, cylinderProgram) {
     gl.useProgram(cylinderProgram);
-    gl.uniform1i(cylinderProgram.u_isTree, 0);
-    // Set the vertex coordinates, the color and the normal
+
+    // Set the vertex coordinates and the normal
     var n = initVertexBuffers(gl, cylinderProgram);
     if (n < 0) {
         console.log('Failed to set the vertex information');
         return;
     }
 
+    gl.uniform1i(cylinderProgram.u_isTree, 0);
+    gl.uniform1i(cylinderProgram.u_LightOff, is_selected_s);
     gl.uniform3f(cylinderProgram.u_LightColor, 1.0, 1.0, 1.0);
-    // Set the light direction (in the world coordinate)
     gl.uniform3f(cylinderProgram.u_LightDirection, 1.0, 1.0, 1.0);
     gl.vertexAttrib4f(cylinderProgram.a_Color_2, colora, 0.0, 0.0, 1.0);
 
@@ -1290,6 +1333,14 @@ function initArrayBuffer(gl, program, a_attribute, data, type, num) {
     return true;
 }
 
+/* setPositions
+ * input:
+ * none
+ * output:
+ * none
+ * use:
+ * calculate the positions and indices for the sphere
+ */
 function setPositions() {
     var SPHERE_DIV = 13;
     var r = 5;
