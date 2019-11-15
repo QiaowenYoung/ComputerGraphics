@@ -27,13 +27,13 @@ var VSHADER_SOURCE =
             // Make the length of the normal 1.0
     '       vec3 normal = normalize((u_rotateMatrix_x * u_rotateMatrix_z * vec4(a_Normal,0.0)).xyz);\n' +
             // Dot product of the light direction and the orientation of a surface (the normal)
-    '       float nDotL = max(dot(u_LightDirection, normal), 0.0);\n' +
+    '       float nDotL = max(dot(normalize(u_LightDirection), normal), 0.0);\n' +
             // Calculate the color due to diffuse reflection
     '       vec3 diffuse = u_LightColor * a_Color.rgb * nDotL;\n' +
             // Calculate specular
     '       float specular = 0.0;\n' +
     '       if(nDotL > 0.0) {\n' +
-    '           vec3 R = reflect(-u_LightDirection, normal);\n' +
+    '           vec3 R = reflect(-normalize(u_LightDirection), normal);\n' +
     '           vec3 V = normalize(-v_vertPos);\n' +
     '           float specAngle = max(dot(R, V), 0.0);\n' +
     '           specular = pow(specAngle, u_shininessVal);\n' +
@@ -41,8 +41,11 @@ var VSHADER_SOURCE =
     '       vec3 s = vec3(1.0, 1.0, 1.0) * vec3(1.0, 1.0, 1.0) * specular;\n' +
 
             // Point light
-    '       vec3 lightDirection2 = normalize(u_LightPos - vec3(u_mvpMatrix * u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * a_Position + u_Translation));\n' +
-    '       float nDotL2 = max(dot(lightDirection2, normal), 0.0);\n' +
+    '       vec3 lightDirection2 = normalize(u_LightPos - vec3(u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * a_Position + u_Translation));\n' +
+    '       vec3 normal2 = normalize((u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * vec4(a_Normal,0.0) + u_Translation).xyz);\n' +
+    '       v_vertPos4 = u_mvpMatrix * u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * a_Position + u_Translation;\n' +
+    '       v_vertPos = vec3(v_vertPos4) / v_vertPos4.w;\n' + // view direction
+    '       float nDotL2 = max(dot(lightDirection2, normal2), 0.0);\n' +
     '       vec3 diffuse2 = vec3(0.5, 0.5, 1) * a_Color.rgb * nDotL2;\n' +
     '       float specular2 = 0.0;\n' +
     '       if(nDotL2 > 0.0) {\n' +
@@ -661,7 +664,7 @@ function redraw(ev, gl, canvas, cylinderProgram) {
                 }
             }
             if (selected.length == 0) { // click is not on a tree, but on the sphere
-                if(is_selected_s == 0) {
+                if (is_selected_s == 0) {
                     console.log('turn off the light');
                     is_selected_s = 1;
                 }
@@ -1142,7 +1145,7 @@ function initMatrix(gl, cylinderProgram, tag1, tag2) {
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
         else {
-            mvpMatrix.setPerspective(90, 1, 10, 1000);
+            mvpMatrix.setPerspective(90, 1, 100, 1000);
             mvpMatrix.lookAt(0, 0, 200, 0, 0, 0, 0, 1, 0);
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
@@ -1154,7 +1157,7 @@ function initMatrix(gl, cylinderProgram, tag1, tag2) {
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
         else {
-            mvpMatrix.setPerspective(90, 1, 10, 1000);
+            mvpMatrix.setPerspective(90, 1, 100, 1000);
             mvpMatrix.lookAt(0, -200, 75, 0, 0, 0, 0, 1, 0);
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
