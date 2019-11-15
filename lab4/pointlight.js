@@ -1117,7 +1117,7 @@ function initLightPos(gl, cylinderProgram) {
 
     /* lightPos[0] and lightPos[1] store the (x, y) coordinates of the light source
      * I need to multiply them with the canvas's dimensions to make the light position right.
-     */ 
+     */
     var lightPos = new Vector3([-100 + 200 * selected_s[0], -100 + 200 * selected_s[1], 0]);
     gl.uniform3fv(cylinderProgram.u_LightPos, lightPos.elements);
 }
