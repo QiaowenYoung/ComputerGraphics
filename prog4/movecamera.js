@@ -24,13 +24,13 @@ var VSHADER_SOURCE =
     '       vec4 v_vertPos4 = u_mvpMatrix * u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * a_Position;\n' +
     '       v_vertPos = vec3(v_vertPos4) / v_vertPos4.w;\n' + // view direction
     '       gl_Position = u_mvpMatrix * u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * a_Position + u_Translation;\n' +
-            // Make the length of the normal 1.0
-    '       vec3 normal = normalize((u_rotateMatrix_x * u_rotateMatrix_z * vec4(a_Normal,0.0)).xyz);\n' +
-            // Dot product of the light direction and the orientation of a surface (the normal)
+    // Make the length of the normal 1.0
+    '       vec3 normal = normalize((u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * vec4(a_Normal,0.0)).xyz);\n' +
+    // Dot product of the light direction and the orientation of a surface (the normal)
     '       float nDotL = max(dot(normalize(u_LightDirection), normal), 0.0);\n' +
-            // Calculate the color due to diffuse reflection
+    // Calculate the color due to diffuse reflection
     '       vec3 diffuse = u_LightColor * a_Color.rgb * nDotL;\n' +
-            // Calculate specular
+    // Calculate specular
     '       float specular = 0.0;\n' +
     '       if(nDotL > 0.0) {\n' +
     '           vec3 R = reflect(-normalize(u_LightDirection), normal);\n' +
@@ -40,7 +40,7 @@ var VSHADER_SOURCE =
     '       }\n' +
     '       vec3 s = vec3(1.0, 1.0, 1.0) * vec3(1.0, 1.0, 1.0) * specular;\n' +
 
-            // Point light
+    // Point light
     '       vec3 lightDirection2 = normalize(u_LightPos - vec3(u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * a_Position + u_Translation));\n' +
     '       vec3 normal2 = normalize((u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * vec4(a_Normal,0.0) + u_Translation).xyz);\n' +
     '       v_vertPos4 = u_mvpMatrix * u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * a_Position + u_Translation;\n' +
@@ -73,13 +73,13 @@ var VSHADER_SOURCE =
     '           color = vec4(0.5, 0.5, 0.0, 1.0);\n' + // if turned off, make it a little darker
     '       }\n' +
     '       gl_Position = u_mvpMatrix * a_Position + u_Translation;\n' +
-            // Calculate a normal to be fit with a model matrix, and make it 1.0 in length
+    // Calculate a normal to be fit with a model matrix, and make it 1.0 in length
     '       vec3 normal = normalize(vec3(u_NormalMatrix * vec4(a_Normal, 0.0)));\n' +
-            // Calculate the light direction and make it 1.0 in length
+    // Calculate the light direction and make it 1.0 in length
     '       vec3 lightDirection = normalize(u_LightDirection);\n' +
-            // The dot product of the light direction and the normal
+    // The dot product of the light direction and the normal
     '       float nDotL = max(dot(lightDirection, normal), 0.0);\n' +
-            // Calculate the color due to diffuse reflection
+    // Calculate the color due to diffuse reflection
     '       vec3 diffuse = u_LightColor * color.rgb * nDotL;\n' +
     '       float specular = 0.0;\n' +
     '       if(nDotL > 0.0) {\n' +
@@ -463,12 +463,19 @@ function main() {
     }
 
     document.onmousewheel = function (ev) { // scaling
-        var d = ev.wheelDelta;
-        if (selected.length != 0) {
-            console.log('scaling');
-            selected[5] = selected[5] - selected[5] * d / 5000;
-        }
-        draw(gl, cylinderProgram);
+            var d = ev.wheelDelta;
+            if (selected.length != 0) {
+                console.log('scaling');
+                selected[5] = selected[5] - selected[5] * d / 5000;
+            }
+            else { // for scaling all the trees
+                console.log('zooming');
+                for (var i = 0; i < count; i++) {
+                    var newmap = map[i];
+                    newmap[6] = newmap[6] - newmap[6] * d / 5000;
+                }
+            }
+            draw(gl, cylinderProgram);
     };
 
     var checkbox1 = document.getElementById('toggle1');
