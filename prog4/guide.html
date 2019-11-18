@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Features</title>
+    <style>
+        #text1 {
+            padding-left: 80px;
+            padding-right: 700px;
+            padding-top: 100px;
+            color: steelblue;
+            font-family: 'Times New Roman', Times, serif;
+        }
+
+        img {
+            position: absolute;
+            right: 80px;
+            top: 250px;
+            box-shadow: 2px 2px 5px steelblue;
+            border-radius: 0% 10% 0% 10% / 0% 20% 0% 20%;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 110%;
+            background-image: linear-gradient(to top, lightblue, white);
+        }
+
+        a:link {
+            text-decoration: none;
+            color: steelblue
+        }
+
+        a:active {
+            text-decoration: blink
+        }
+
+        a:hover {
+            text-decoration: underline;
+            color: lightcoral
+        }
+
+        a:visited {
+            text-decoration: none;
+            color: darkturquoise
+        }
+    </style>
+</head>
+
+<body>
+    <div id=text1>
+        <h1>User-guide and features</h1>
+        <h3>Features</h3>
+        <p>The canvas is 600x600 in dimension.</p>
+        <p>Left click to draw a red tree, right click to draw a blue tree. 
+        </p>
+        <p>Click on the toggle below canvas to change view from top to side. 
+            The second toggle is to switch between orthographic view and perspective view. 
+            The checkbox under two toggles is to choose between flat, smooth or wireframe.
+        </p>
+        <p>Click on the first button to save your current work to file. 
+            Click on the second button to load a scene from file. Then click "submit" to see your previous work.
+        </p>
+        <p>
+            Click on a visible tree to select it. You can only select one tree at a time. When you want to select another tree, 
+            or you may want to translate the sphere, you need to do a click on the canvas blank, then click on another tree or the sphere. 
+            After a selection, you can translate/rotate/scale the tree if you follow the operation instructions of prog3. 
+            You can find these instructions on the course website, or my prog3's guide page:)
+        </p>
+        <p>
+            There is a second light source, a yellow sphere. It is by default TURNED ON. 
+            Click on the sphere to TURN IT OFF. If there is no trees currently being selected, 
+            you can use the left buttton and drag your mouse on the canvas to translate the sphere around. 
+            This light source add both diffuse and specular components to trees' colors. 
+            When you turn it on and drag it around, it shall make your trees a little brighter, 
+            especially when you use a side view. 
+            To help you know whether the light is on, I also make the sphere a little brighter when you turn it on.
+        </p>
+        <p>
+            Notice: 
+            you can not select a tree and think of doing translation on the sphere at the same time. 
+            This may cause misunderstanding and chaos. 
+            If you want to do transformations on a tree, you must click on that tree first. 
+            If you want to translate the sphere, you must make sure that none of your trees is selected.
+        </p>
+        <p>
+            All the transformations are cumulative.
+        </p>
+        <h3>Thoughts</h3>
+        <p>I calculate all the coordinates for a whole tree and it's normals and store them in the ./point.js. 
+            There are 6 arrays in the ./points.js, namely cylinderl (the tree created by a left click), 
+            cylinderr (by a right click), nl (normals for a left click tree under smooth shading), 
+            nr (normals for a right one under smooth shading), nnl (normals for a left click under flat shading), 
+            nnr (normals for a right click under flat shading). The algorithm for the trees calculation is in ./algorithm.js. 
+            It has detailed documentation for you to check.</p>
+        <a href="features.html">Homepage |</a>
+        <a href="driver.html">| My canvas</a>
+    </div>
+    <img src="screenshot2.png" width="500" height="280">
+</body>
+
+</html>
