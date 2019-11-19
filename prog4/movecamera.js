@@ -147,6 +147,8 @@ var zooming = 0.0; // zoom in/out
 var camera1 = 0.0; // camera position
 var camera2 = 0.0; // camera position
 var isCamera = 0; // whether you are changing camera's position
+var isPanning = 0;
+var Transx, Transy;
 
 var scale = new Float32Array([ // scaling matrix
     1.0, 0.0, 0.0, 0.0,
@@ -244,15 +246,15 @@ function main() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     canvas.onmousedown = function (ev) {
+        var x = ev.clientX; // x coordinate of a mouse pointer
+        var y = ev.clientY; // y coordinate of a mouse pointer
+        var rect = ev.target.getBoundingClientRect();
+
+        x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
+        y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
         if (selected.length != 0 && ev.button == 0) { // translation of a tree
             console.log('translation: mousedown');
             isMoving = 1;
-            var x = ev.clientX; // x coordinate of a mouse pointer
-            var y = ev.clientY; // y coordinate of a mouse pointer
-            var rect = ev.target.getBoundingClientRect();
-
-            x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
-            y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
             offx1 = x;
             offy1 = y;
 
@@ -272,27 +274,19 @@ function main() {
         else if (selected.length != 0 && ev.button == 2) { // rotation
             console.log('rotate: mousedown');
             isRotating = 1;
-            var x = ev.clientX; // x coordinate of a mouse pointer
-            var y = ev.clientY; // y coordinate of a mouse pointer
-            var rect = ev.target.getBoundingClientRect();
-
-            x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
-            y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
             offx2 = x;
             offy2 = y;
         }
-        else if (ev.button == 0) { // translation of the sphere or create a tree here
-            is_clicked_s = decideClickOn(ev, gl, canvas, cylinderProgram);
-            if (is_clicked_s) { // if the mouse is on sphere
-                isMoving_s = 1;
+        else if (selected.length == 0 && ev.button == 0) { // translation of the sphere or create a tree here or select a tree
+            is_clicked_s = decideClickOn(ev, gl, cylinderProgram);
+            if (is_clicked_s == 1) { // if the mouse is on sphere
+                isMoving_s = 1; // the sphere is ready to be moved
             }
-            // else, the mouse is on the blank or an unselected tree
-            var x = ev.clientX; // x coordinate of a mouse pointer
-            var y = ev.clientY; // y coordinate of a mouse pointer
-            var rect = ev.target.getBoundingClientRect();
-
-            x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
-            y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
+            else if (is_clicked_s == 2) { // the mouse is on blank; set camera ready to be moved
+                isPanning = 1;
+                Transx = x;
+                Transy = y;
+            }
             offxs = x;
             offys = y;
             xs0 = x;
@@ -300,10 +294,6 @@ function main() {
         }
         else if (ev.which == 2 && selected.length != 0) { // middle clickdown
             console.log('middle click');
-            var y = ev.clientY; // y coordinate of a mouse pointer
-            var rect = ev.target.getBoundingClientRect();
-
-            y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
             offz = y;
             isUp = 1;
         }
@@ -316,14 +306,14 @@ function main() {
     };
 
     canvas.onmousemove = function (ev) {
+        var x = ev.clientX; // x coordinate of a mouse pointer
+        var y = ev.clientY; // y coordinate of a mouse pointer
+        var rect = ev.target.getBoundingClientRect();
+
+        x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
+        y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
         if (isMoving) { // translation
             console.log('translation: mousemove');
-            var x = ev.clientX; // x coordinate of a mouse pointer
-            var y = ev.clientY; // y coordinate of a mouse pointer
-            var rect = ev.target.getBoundingClientRect();
-
-            x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
-            y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
             selected[2] += x - offx1;
             selected[3] += y - offy1;
 
@@ -335,27 +325,24 @@ function main() {
             draw(gl, cylinderProgram);
         }
         if (isMoving_s && is_clicked_s) { // translation of the sphere
-            var x = ev.clientX; // x coordinate of a mouse pointer
-            var y = ev.clientY; // y coordinate of a mouse pointer
-            var rect = ev.target.getBoundingClientRect();
-
-            x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
-            y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
             selected_s[0] += x - offxs;
             selected_s[1] += y - offys;
             offxs = x;
             offys = y;
             draw(gl, cylinderProgram);
         }
+        if (isPanning) {
+            for (var i = 0; i < count; i++) {
+                var newmap = map[i];
+                newmap[3] -= x - Transx;
+                newmap[4] -= y - Transy;
+            }
+            Transx = x;
+            Transy = y;
+            draw(gl, cylinderProgram);
+        }
         if (isRotating == 1) { // rotation
             console.log('rotation: mousemove');
-            var x = ev.clientX; // x coordinate of a mouse pointer
-            var y = ev.clientY; // y coordinate of a mouse pointer
-            var rect = ev.target.getBoundingClientRect();
-
-            x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
-            y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
-
             /* Here I compare the original offsets of horizontal and vertical movement.
              * If the horizontal movement is larger than the vertical one, 
              * do a rotation by z axis.
@@ -378,11 +365,6 @@ function main() {
         }
         else if (isRotating == 2) { // rotate by x axis
             console.log('rotation: mousemove, rotate by x axis');
-            var y = ev.clientY; // y coordinate of a mouse pointer
-            var rect = ev.target.getBoundingClientRect();
-
-            y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
-
             /* I multiply the movement of your mouse with 2*PI,
              * to transfer the movement into radius.
              */
@@ -392,10 +374,6 @@ function main() {
         }
         else if (isRotating == 3) { // rotate by z axis
             console.log('rotation: mousemove, rotate by z axis');
-            var x = ev.clientX; // x coordinate of a mouse pointer
-            var rect = ev.target.getBoundingClientRect();
-
-            x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
             selected[7] = selected[7] - 2 * Math.PI * (x - offx2);
             offx2 = x;
             draw(gl, cylinderProgram);
@@ -403,79 +381,32 @@ function main() {
     }
 
     canvas.onmouseup = function (ev) {
+        var x = ev.clientX; // x coordinate of a mouse pointer
+        var y = ev.clientY; // y coordinate of a mouse pointer
+        var rect = ev.target.getBoundingClientRect();
+
+        x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
+        y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
         if (ev.button == 0 && selected.length != 0 && isMoving == 1) { // translation ends
             console.log('translation: mouseup');
             isMoving = 0;
-            var x = ev.clientX; // x coordinate of a mouse pointer
-            var y = ev.clientY; // y coordinate of a mouse pointer
-            var rect = ev.target.getBoundingClientRect();
-
-            x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
-            y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
-            selected[2] += x - offx1;
-            selected[3] += y - offy1;
-            offx1 = x;
-            offy1 = y;
             if (x0 == x && y0 == y) { // the click means to deselecte the tree; see explanations in line 178~186
                 redraw(ev, gl, canvas, cylinderProgram);
-            }
-            else {
-                draw(gl, cylinderProgram);
             }
         }
         else if (ev.button == 2 && selected.length != 0 && isRotating != 0) { // rotation ends
             console.log('rotation: mouseup');
-            var x = ev.clientX; // x coordinate of a mouse pointer
-            var y = ev.clientY; // y coordinate of a mouse pointer
-            var rect = ev.target.getBoundingClientRect();
-
-            x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
-            y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
-            if (isRotating == 2) {
-                selected[6] = selected[6] + 2 * Math.PI * (y - offy2);
-                offy2 = y;
-            }
-            else if (isRotating == 3) {
-                selected[7] = selected[7] - 2 * Math.PI * (x - offx2);
-                offx2 = x;
-            }
             isRotating = 0;
-            draw(gl, cylinderProgram);
         }
         else if (ev.button == 0) { // translation of the sphere ends or turn on/off the sphere or create a new tree
-            var x = ev.clientX; // x coordinate of a mouse pointer
-            var y = ev.clientY; // y coordinate of a mouse pointer
-            var rect = ev.target.getBoundingClientRect();
-
-            x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
-            y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
             if (xs0 == x && ys0 == y) { // click means to turn on/off the sphere or create a new tree
                 redraw(ev, gl, canvas, cylinderProgram);
             }
-            else if (is_clicked_s) {
-                selected_s[0] += x - offxs;
-                selected_s[1] += y - offys;
-                offxs = x;
-                offys = y;
-            }
-            //else if (isMoving_s) { // click means to translation the sphere
-            //    draw(gl, cylinderProgram);
-            //}
             isMoving_s = 0;
+            isPanning = 0;
         }
-        //else if (ev.button == 0) { // create a new tree
-        //    redraw(ev, gl, canvas, cylinderProgram);
-        //}
         else if (ev.which == 2 && selected.length != 0 && isUp == 1) { // translation in z direction ends
             console.log('middle up');
-            var y = ev.clientY; // y coordinate of a mouse pointer
-            var rect = ev.target.getBoundingClientRect();
-
-            y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
-            selected[4] += (offz - y) / 5; // divided by 5 so that you may see how the tree disappears more smoothly
-            offz = y;
-            isUp = 0;
-            draw(gl, cylinderProgram);
         }
     }
 
@@ -487,7 +418,7 @@ function main() {
         }
         else if (isCamera) { // move camera
             console.log('camera moving');
-            if(toggle1 == 0) { // top view
+            if (toggle1 == 0) { // top view
                 camera1 = camera1 + d / 200;
             }
             else {
@@ -576,7 +507,7 @@ function main() {
     });
 }
 
-function decideClickOn(ev, gl, canvas, cylinderProgram) {
+function decideClickOn(ev, gl, cylinderProgram) {
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
     gl.enable(gl.DEPTH_TEST);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -655,13 +586,16 @@ function decideClickOn(ev, gl, canvas, cylinderProgram) {
 
     var pixels = new Uint8Array(4); // Array for storing the pixel value
     gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    if (pixels[0] + pixels[1] + pixels[2] + pixels[3] == 1020) { // click on blank
+        tag = 2;
+    }
     if (pixels[0] + pixels[1] + pixels[2] + pixels[3] != 1020) { // click on tree or sphere
         if (pixels[0] == 255) { // click on sphere
             tag = 1;
         }
     }
     draw(gl, cylinderProgram);
-    return tag;
+    return tag; // 0: tree, 1: sphere, 2: blank
 }
 
 /* redraw
