@@ -144,7 +144,8 @@ var isMoving = 0; // represent whether you are doing a translation op
 var isRotating = 0; // whether you are rotating a tree
 var isUp = 0; // whether you are translating the tree in the z direction
 var zooming = 0.0; // zoom in/out
-var camera = 0.0; // camera position
+var camera1 = 0.0; // camera position
+var camera2 = 0.0; // camera position
 var isCamera = 0; // whether you are changing camera's position
 
 var scale = new Float32Array([ // scaling matrix
@@ -179,7 +180,7 @@ var colora = 255; // the rgba.a component of the sphere, useful when picking
 var selected_s = [0.0, 0.0]; // the xy offset of sphere
 var is_selected_s = 0; // 0: sphere is not selected, 1: sphere is selected
 var isMoving_s = 0; // 0: sphere is not moving, 1: sphere is moving
-var offxs, offxy; // offset used when translating sphere
+var offxs, offys; // offset used when translating sphere
 var xs0, ys0; // offset used when translating sphere
 var is_clicked_s = 0; // 0: sphere is not clicked, 1: sphere is clicked
 
@@ -281,7 +282,11 @@ function main() {
             offy2 = y;
         }
         else if (ev.button == 0) { // translation of the sphere or create a tree here
-            isMoving_s = 1;
+            is_clicked_s = decideClickOn(ev, gl, canvas, cylinderProgram);
+            if (is_clicked_s) { // if the mouse is on sphere
+                isMoving_s = 1;
+            }
+            // else, the mouse is on the blank or an unselected tree
             var x = ev.clientX; // x coordinate of a mouse pointer
             var y = ev.clientY; // y coordinate of a mouse pointer
             var rect = ev.target.getBoundingClientRect();
@@ -306,7 +311,7 @@ function main() {
             isCamera = 1;
         }
         else {
-            redraw(ev, gl, canvas, cylinderProgram);
+            click(ev, gl, canvas, cylinderProgram); // right click to generate blue tree
         }
     };
 
@@ -437,25 +442,30 @@ function main() {
             isRotating = 0;
             draw(gl, cylinderProgram);
         }
-        else if (ev.button == 0 && isMoving_s == 1) { // translation of the sphere ends
-            isMoving_s = 0;
+        else if (ev.button == 0) { // translation of the sphere ends or turn on/off the sphere or create a new tree
             var x = ev.clientX; // x coordinate of a mouse pointer
             var y = ev.clientY; // y coordinate of a mouse pointer
             var rect = ev.target.getBoundingClientRect();
 
             x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
             y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
-            selected_s[0] += x - offxs;
-            selected_s[1] += y - offys;
-            offxs = x;
-            offys = y;
-            if (xs0 == x && ys0 == y) { // click means to deselect the sphere
+            if (xs0 == x && ys0 == y) { // click means to turn on/off the sphere or create a new tree
                 redraw(ev, gl, canvas, cylinderProgram);
             }
             else if (is_clicked_s) {
-                draw(gl, cylinderProgram);
+                selected_s[0] += x - offxs;
+                selected_s[1] += y - offys;
+                offxs = x;
+                offys = y;
             }
+            //else if (isMoving_s) { // click means to translation the sphere
+            //    draw(gl, cylinderProgram);
+            //}
+            isMoving_s = 0;
         }
+        //else if (ev.button == 0) { // create a new tree
+        //    redraw(ev, gl, canvas, cylinderProgram);
+        //}
         else if (ev.which == 2 && selected.length != 0 && isUp == 1) { // translation in z direction ends
             console.log('middle up');
             var y = ev.clientY; // y coordinate of a mouse pointer
@@ -475,15 +485,24 @@ function main() {
             console.log('scaling');
             selected[5] = selected[5] - selected[5] * d / 5000;
         }
+        else if (isCamera) { // move camera
+            console.log('camera moving');
+            if(toggle1 == 0) { // top view
+                camera1 = camera1 + d / 200;
+            }
+            else {
+                camera2 = carema2 + d / 200;
+            }
+        }
         else { // zooming
             console.log('zooming');
-            zooming = zooming +  d / 200;
+            zooming = zooming + d / 200;
             /* The following modifications are to avoid scenes that are above common sense.
              * After the fov goes beyond (0, 180], the trees will be transformed reversely.
              * For example, if you zoom in too much, without modifications to fov, 
              * trees will be zoomed out due to fov out of reasonable range.
              */
-            if (90 + zooming  <= 0) {
+            if (90 + zooming <= 0) {
                 zooming = -89;
             }
             if (90 + zooming >= 180) {
@@ -555,6 +574,94 @@ function main() {
             rad[2].checked = true;
         }
     });
+}
+
+function decideClickOn(ev, gl, canvas, cylinderProgram) {
+    gl.clearColor(1.0, 1.0, 1.0, 1.0);
+    gl.enable(gl.DEPTH_TEST);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    var x = ev.clientX, y = ev.clientY;
+    var rect = ev.target.getBoundingClientRect();
+    var tag = 0;
+    x = x - rect.left;
+    y = rect.bottom - y;
+    for (var i = 0; i < count; i++) {
+        // redraw all the trees using different colors
+        var newmap = map[i];
+        var color = newmap[0] / 255.0;
+        var s = newmap[6];
+        scale = new Float32Array([
+            s, 0.0, 0.0, 0.0,
+            0.0, s, 0.0, 0.0,
+            0.0, 0.0, s, 0.0,
+            0.0, 0.0, 0.0, 1.0
+        ]);
+
+        var c_x = Math.cos(newmap[7]);
+        var s_x = Math.sin(newmap[7]);
+        rotate_x = new Float32Array([
+            1.0, 0.0, 0.0, 0.0,
+            0.0, c_x, -s_x, 0.0,
+            0.0, s_x, c_x, 0.0,
+            0.0, 0.0, 0.0, 1.0
+        ]);
+
+        var c_z = Math.cos(newmap[8]);
+        var s_z = Math.sin(newmap[8]);
+        rotate_z = new Float32Array([
+            c_z, -s_z, 0.0, 0.0,
+            s_z, c_z, 0.0, 0.0,
+            0.0, 0.0, 1.0, 0.0,
+            0.0, 0.0, 0.0, 1.0
+        ]);
+
+        gl.useProgram(cylinderProgram);
+        initPositions(gl, cylinderProgram, newmap[2]);
+        initColors(gl, cylinderProgram, newmap[2]);
+        initLightColor(gl, cylinderProgram);
+        initLightDirection(gl, cylinderProgram);
+        initLightPos(gl, cylinderProgram);
+        initMatrix(gl, cylinderProgram, toggle1, toggle2);
+        initTranslation(gl, cylinderProgram, newmap[3], newmap[4], newmap[5], toggle2);
+        initGloss(gl, cylinderProgram, newmap[2]);
+        initNormals(gl, cylinderProgram, newmap[2], 0);
+        gl.uniform1i(cylinderProgram.u_Clicked, 1);
+        gl.uniform1i(cylinderProgram.u_isTree, 1); // draw trees
+        gl.uniform1i(cylinderProgram.u_LightOff, is_selected_s);
+        gl.vertexAttrib4f(cylinderProgram.a_Color_2, color, 0.0, 0.0, 1.0);
+        initScale(gl, cylinderProgram);
+        initRotate(gl, cylinderProgram);
+        var len;
+        if (newmap[2] == 0) {
+            len = cylinderl.length / 3;
+        }
+        else {
+            len = cylinderr.length / 3;
+        }
+        if (toggle3 == 0) { // Flat shading
+            initNormals(gl, cylinderProgram, newmap[2], 0);
+            gl.drawArrays(gl.TRIANGLES, 0, len);
+        }
+        else if (toggle3 == 1) { // smooth
+            initNormals(gl, cylinderProgram, newmap[2], 1);
+            gl.drawArrays(gl.TRIANGLES, 0, len);
+        }
+        else if (toggle3 == 2) { // wireframe using flat shading normals
+            initNormals(gl, cylinderProgram, newmap[2], 0);
+            gl.drawArrays(gl.LINES, 0, len);
+        }
+    }
+    drawSphere(gl, cylinderProgram);
+
+    var pixels = new Uint8Array(4); // Array for storing the pixel value
+    gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    if (pixels[0] + pixels[1] + pixels[2] + pixels[3] != 1020) { // click on tree or sphere
+        if (pixels[0] == 255) { // click on sphere
+            tag = 1;
+        }
+    }
+    draw(gl, cylinderProgram);
+    return tag;
 }
 
 /* redraw
@@ -1168,24 +1275,24 @@ function initMatrix(gl, cylinderProgram, tag1, tag2) {
     if (tag1 == 0) { // Top view
         if (tag2 == 0) { //Ortho
             mvpMatrix.setOrtho(-200, 200, -200, 200, -1000, 1000);
-            mvpMatrix.lookAt(0, 0, 200, 0, 0, 0, 0, 1, 0);
+            mvpMatrix.lookAt(0, 0, 200 + camera1, 0, 0, 0, 0, 1, 0);
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
         else {
             mvpMatrix.setPerspective(90 + zooming, 1, 100, 1000);
-            mvpMatrix.lookAt(0, 0, 200, 0, 0, 0, 0, 1, 0);
+            mvpMatrix.lookAt(0, 0, 200 + camera1, 0, 0, 0, 0, 1, 0);
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
     }
     else { // Side
         if (tag2 == 0) { //Ortho
             mvpMatrix.setOrtho(-200, 200, -200, 200, -1000, 1000);
-            mvpMatrix.lookAt(0, -200, 75, 0, 0, 0, 0, 1, 0);
+            mvpMatrix.lookAt(0, -200 + 8 * camera2, 75 + 3 * camera2, 0, 0, 0, 0, 1, 0);
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
         else {
             mvpMatrix.setPerspective(90 + zooming, 1, 100, 1000);
-            mvpMatrix.lookAt(0, -200, 75, 0, 0, 0, 0, 1, 0);
+            mvpMatrix.lookAt(0, -200 + 8 * camera2, 75 + 3 * camera2, 0, 0, 0, 0, 1, 0);
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
     }
