@@ -143,6 +143,9 @@ var x0, y0; // original coord of a tree, used in translation
 var isMoving = 0; // represent whether you are doing a translation op
 var isRotating = 0; // whether you are rotating a tree
 var isUp = 0; // whether you are translating the tree in the z direction
+var zooming = 0.0; // zoom in/out
+var camera = 0.0; // camera position
+var isCamera = 0; // whether you are changing camera's position
 
 var scale = new Float32Array([ // scaling matrix
     1.0, 0.0, 0.0, 0.0,
@@ -178,6 +181,7 @@ var is_selected_s = 0; // 0: sphere is not selected, 1: sphere is selected
 var isMoving_s = 0; // 0: sphere is not moving, 1: sphere is moving
 var offxs, offxy; // offset used when translating sphere
 var xs0, ys0; // offset used when translating sphere
+var is_clicked_s = 0; // 0: sphere is not clicked, 1: sphere is clicked
 
 function main() {
     // Retrieve <canvas> element
@@ -276,7 +280,7 @@ function main() {
             offx2 = x;
             offy2 = y;
         }
-        else if (ev.button == 0) { // translation of the sphere
+        else if (ev.button == 0) { // translation of the sphere or create a tree here
             isMoving_s = 1;
             var x = ev.clientX; // x coordinate of a mouse pointer
             var y = ev.clientY; // y coordinate of a mouse pointer
@@ -289,7 +293,7 @@ function main() {
             xs0 = x;
             ys0 = y;
         }
-        else if (ev.which == 2) { // middle clickdown
+        else if (ev.which == 2 && selected.length != 0) { // middle clickdown
             console.log('middle click');
             var y = ev.clientY; // y coordinate of a mouse pointer
             var rect = ev.target.getBoundingClientRect();
@@ -297,6 +301,9 @@ function main() {
             y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
             offz = y;
             isUp = 1;
+        }
+        else if (ev.which == 2 && selected.length == 0) { // middle click and scroll
+            isCamera = 1;
         }
         else {
             redraw(ev, gl, canvas, cylinderProgram);
@@ -322,7 +329,7 @@ function main() {
             offy1 = y;
             draw(gl, cylinderProgram);
         }
-        if (isMoving_s) { // translation of the sphere
+        if (isMoving_s && is_clicked_s) { // translation of the sphere
             var x = ev.clientX; // x coordinate of a mouse pointer
             var y = ev.clientY; // y coordinate of a mouse pointer
             var rect = ev.target.getBoundingClientRect();
@@ -445,7 +452,7 @@ function main() {
             if (xs0 == x && ys0 == y) { // click means to deselect the sphere
                 redraw(ev, gl, canvas, cylinderProgram);
             }
-            else {
+            else if (is_clicked_s) {
                 draw(gl, cylinderProgram);
             }
         }
@@ -463,19 +470,27 @@ function main() {
     }
 
     document.onmousewheel = function (ev) { // scaling
-            var d = ev.wheelDelta;
-            if (selected.length != 0) {
-                console.log('scaling');
-                selected[5] = selected[5] - selected[5] * d / 5000;
+        var d = ev.wheelDelta;
+        if (selected.length != 0) {
+            console.log('scaling');
+            selected[5] = selected[5] - selected[5] * d / 5000;
+        }
+        else { // zooming
+            console.log('zooming');
+            zooming = zooming +  d / 200;
+            /* The following modifications are to avoid scenes that are above common sense.
+             * After the fov goes beyond (0, 180], the trees will be transformed reversely.
+             * For example, if you zoom in too much, without modifications to fov, 
+             * trees will be zoomed out due to fov out of reasonable range.
+             */
+            if (90 + zooming  <= 0) {
+                zooming = -89;
             }
-            else { // for scaling all the trees
-                console.log('zooming');
-                for (var i = 0; i < count; i++) {
-                    var newmap = map[i];
-                    newmap[6] = newmap[6] - newmap[6] * d / 5000;
-                }
+            if (90 + zooming >= 180) {
+                zooming = 90;
             }
-            draw(gl, cylinderProgram);
+        }
+        draw(gl, cylinderProgram);
     };
 
     var checkbox1 = document.getElementById('toggle1');
@@ -629,6 +644,7 @@ function redraw(ev, gl, canvas, cylinderProgram) {
     var pixels = new Uint8Array(4); // Array for storing the pixel value
     gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
     if (pixels[0] + pixels[1] + pixels[2] + pixels[3] == 1020) {
+        is_clicked_s = 0;
         // click on blank, need to check current tree and store its status back to map
         if (selected.length != 0) { // deselect a tree
             var newmap = map[selected[0]]; // get the selected tree in map
@@ -670,7 +686,11 @@ function redraw(ev, gl, canvas, cylinderProgram) {
                     break;
                 }
             }
+            if (selected.length != 0) {
+                is_clicked_s = 0;
+            }
             if (selected.length == 0) { // click is not on a tree, but on the sphere
+                is_clicked_s = 1;
                 if (is_selected_s == 0) {
                     console.log('turn off the light');
                     is_selected_s = 1;
@@ -1152,7 +1172,7 @@ function initMatrix(gl, cylinderProgram, tag1, tag2) {
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
         else {
-            mvpMatrix.setPerspective(90, 1, 100, 1000);
+            mvpMatrix.setPerspective(90 + zooming, 1, 100, 1000);
             mvpMatrix.lookAt(0, 0, 200, 0, 0, 0, 0, 1, 0);
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
@@ -1164,7 +1184,7 @@ function initMatrix(gl, cylinderProgram, tag1, tag2) {
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
         else {
-            mvpMatrix.setPerspective(90, 1, 100, 1000);
+            mvpMatrix.setPerspective(90 + zooming, 1, 100, 1000);
             mvpMatrix.lookAt(0, -200, 75, 0, 0, 0, 0, 1, 0);
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
