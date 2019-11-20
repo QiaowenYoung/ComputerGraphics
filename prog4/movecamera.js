@@ -144,8 +144,8 @@ var isMoving = 0; // represent whether you are doing a translation op
 var isRotating = 0; // whether you are rotating a tree
 var isUp = 0; // whether you are translating the tree in the z direction
 var zooming = 0.0; // zoom in/out
-var camera1 = 0.0; // camera position
-var camera2 = 0.0; // camera position
+var camera1 = 0.0; // camera1 position
+var camera2 = 1.0; // camera2 position
 var isCamera = 0; // whether you are changing camera's position
 var isPanning = 0;
 var Transx, Transy;
@@ -426,7 +426,7 @@ function main() {
                 camera1 = camera1 + d / 200;
             }
             else {
-                camera2 = camera2 + d / 200;
+                camera2 = camera2 - camera2 * d / 200;
             }
         }
         else { // zooming
@@ -1225,12 +1225,12 @@ function initMatrix(gl, cylinderProgram, tag1, tag2) {
     else { // Side
         if (tag2 == 0) { //Ortho
             mvpMatrix.setOrtho(-200, 200, -200, 200, -1000, 1000);
-            mvpMatrix.lookAt(0, -200 + 8 * camera2, 75 + 3 * camera2, 0, 0, 0, 0, 1, 0);
+            mvpMatrix.lookAt(0, -200 / camera2, 75 / camera2, 0, 0, 0, 0, 1, 0);
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
         else {
             mvpMatrix.setPerspective(90 + zooming, 1, 100, 1000);
-            mvpMatrix.lookAt(0, -200 + 8 * camera2, 75 + 3 * camera2, 0, 0, 0, 0, 1, 0);
+            mvpMatrix.lookAt(0, -200 / camera2, 75 / camera2, 0, 0, 0, 0, 1, 0);
             gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
     }
