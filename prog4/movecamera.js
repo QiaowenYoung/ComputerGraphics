@@ -322,14 +322,12 @@ function main() {
              */
             offx1 = x;
             offy1 = y;
-            draw(gl, cylinderProgram);
         }
         if (isMoving_s && is_clicked_s) { // translation of the sphere
             selected_s[0] += x - offxs;
             selected_s[1] += y - offys;
             offxs = x;
             offys = y;
-            draw(gl, cylinderProgram);
         }
         if (isPanning) {
             for (var i = 0; i < count; i++) {
@@ -339,7 +337,10 @@ function main() {
             }
             Transx = x;
             Transy = y;
-            draw(gl, cylinderProgram);
+        }
+        if (isUp) {
+            selected[4] += (offz - y) / 5;
+            offz = y;
         }
         if (isRotating == 1) { // rotation
             console.log('rotation: mousemove');
@@ -361,7 +362,6 @@ function main() {
             }
             offx2 = x;
             offy2 = y;
-            draw(gl, cylinderProgram);
         }
         else if (isRotating == 2) { // rotate by x axis
             console.log('rotation: mousemove, rotate by x axis');
@@ -370,14 +370,13 @@ function main() {
              */
             selected[6] = selected[6] + 2 * Math.PI * (y - offy2);
             offy2 = y;
-            draw(gl, cylinderProgram);
         }
         else if (isRotating == 3) { // rotate by z axis
             console.log('rotation: mousemove, rotate by z axis');
             selected[7] = selected[7] - 2 * Math.PI * (x - offx2);
             offx2 = x;
-            draw(gl, cylinderProgram);
         }
+        draw(gl, cylinderProgram);
     }
 
     canvas.onmouseup = function (ev) {
@@ -407,6 +406,11 @@ function main() {
         }
         else if (ev.which == 2 && selected.length != 0 && isUp == 1) { // translation in z direction ends
             console.log('middle up');
+            isUp = 0;
+        }
+        else if (ev.which == 2 && selected.length == 0 && isCamera == 1) {
+            console.log('camera moving end');
+            isCamera = 0;
         }
     }
 
