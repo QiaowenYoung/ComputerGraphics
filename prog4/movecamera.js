@@ -426,9 +426,9 @@ function main() {
                 camera1 = camera1 + d / 200;
             }
             else {
-                camera2 = camera2 - camera2 * d / 200;
-                if (camera2 <= 0) {
-                    camera2 = 0;
+                camera2 = camera2 - camera2 * d / 5000;
+                if (camera2 <= 0.001) {
+                    camera2 = 0.001;
                 }
             }
         }
