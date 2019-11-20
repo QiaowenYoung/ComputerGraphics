@@ -426,7 +426,7 @@ function main() {
                 camera1 = camera1 + d / 200;
             }
             else {
-                camera2 = carema2 + d / 200;
+                camera2 = camera2 + d / 200;
             }
         }
         else { // zooming
