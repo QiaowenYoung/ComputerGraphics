@@ -149,6 +149,7 @@ var camera2 = 1.0; // camera2 position
 var isCamera = 0; // whether you are changing camera's position
 var isPanning = 0;
 var Transx, Transy;
+var isDb = 0;
 
 var scale = new Float32Array([ // scaling matrix
     1.0, 0.0, 0.0, 0.0,
@@ -245,6 +246,168 @@ function main() {
     // Clear color and depth buffer
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+    canvas.ondblclick = function (ev) { // yaw
+        var x = ev.clientX; // x coordinate of a mouse pointer
+        var y = ev.clientY; // y coordinate of a mouse pointer
+        var rect = ev.target.getBoundingClientRect();
+
+        x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
+        y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
+        redraw(ev, gl, canvas, cylinderProgram);
+        if (selected.length != 0) { // double click on a tree
+            isDb = 1;
+
+            var dbclick = function () {
+                gl.clearColor(1.0, 1.0, 1.0, 1.0);
+                gl.enable(gl.DEPTH_TEST);
+                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+                for (var i = 0; i < count; i++) {
+                    var newmap = map[i];
+                    if (newmap[1] == 0) {
+                        var s = newmap[6];
+                        scale = new Float32Array([
+                            s, 0.0, 0.0, 0.0,
+                            0.0, s, 0.0, 0.0,
+                            0.0, 0.0, s, 0.0,
+                            0.0, 0.0, 0.0, 1.0
+                        ]);
+
+                        var c_x = Math.cos(newmap[7]);
+                        var s_x = Math.sin(newmap[7]);
+                        rotate_x = new Float32Array([
+                            1.0, 0.0, 0.0, 0.0,
+                            0.0, c_x, -s_x, 0.0,
+                            0.0, s_x, c_x, 0.0,
+                            0.0, 0.0, 0.0, 1.0
+                        ]);
+
+                        var c_z = Math.cos(newmap[8]);
+                        var s_z = Math.sin(newmap[8]);
+                        rotate_z = new Float32Array([
+                            c_z, -s_z, 0.0, 0.0,
+                            s_z, c_z, 0.0, 0.0,
+                            0.0, 0.0, 1.0, 0.0,
+                            0.0, 0.0, 0.0, 1.0
+                        ]);
+
+                        gl.useProgram(cylinderProgram);
+                        gl.uniform1i(cylinderProgram.u_Clicked, 0);
+                        gl.uniform1i(cylinderProgram.u_isTree, 1);
+                        gl.uniform1i(cylinderProgram.u_LightOff, is_selected_s);
+                        initPositions(gl, cylinderProgram, newmap[2]);
+                        initColors(gl, cylinderProgram, newmap[2]);
+                        initLightColor(gl, cylinderProgram);
+                        initLightDirection(gl, cylinderProgram);
+                        initLightPos(gl, cylinderProgram);
+                        initMatrix(gl, cylinderProgram, toggle1, toggle2);
+                        initTranslation(gl, cylinderProgram, newmap[3], newmap[4], newmap[5], toggle2);
+                        initGloss(gl, cylinderProgram, newmap[2]);
+                        initScale(gl, cylinderProgram);
+                        initRotate(gl, cylinderProgram);
+                        var len;
+                        if (newmap[2] == 0) {
+                            len = cylinderl.length / 3;
+                        }
+                        else {
+                            len = cylinderr.length / 3;
+                        }
+                        if (toggle3 == 0) { // Flat shading
+                            initNormals(gl, cylinderProgram, newmap[2], 0);
+                            gl.drawArrays(gl.TRIANGLES, 0, len);
+                        }
+                        else if (toggle3 == 1) { // smooth
+                            initNormals(gl, cylinderProgram, newmap[2], 1);
+                            gl.drawArrays(gl.TRIANGLES, 0, len);
+                        }
+                        else if (toggle3 == 2) { // wireframe using flat shading normals
+                            initNormals(gl, cylinderProgram, newmap[2], 0);
+                            gl.drawArrays(gl.LINES, 0, len);
+                        }
+                    }
+                    else {
+                        var s = selected[5];
+                        scale = new Float32Array([
+                            s, 0.0, 0.0, 0.0,
+                            0.0, s, 0.0, 0.0,
+                            0.0, 0.0, s, 0.0,
+                            0.0, 0.0, 0.0, 1.0
+                        ]);
+                        var c_x = Math.cos(selected[6]);
+                        var s_x = Math.sin(selected[6]);
+                        rotate_x = new Float32Array([
+                            1.0, 0.0, 0.0, 0.0,
+                            0.0, c_x, -s_x, 0.0,
+                            0.0, s_x, c_x, 0.0,
+                            0.0, 0.0, 0.0, 1.0
+                        ]);
+
+                        var c_z = Math.cos(selected[7]);
+                        var s_z = Math.sin(selected[7]);
+                        rotate_z = new Float32Array([
+                            c_z, -s_z, 0.0, 0.0,
+                            s_z, c_z, 0.0, 0.0,
+                            0.0, 0.0, 1.0, 0.0,
+                            0.0, 0.0, 0.0, 1.0
+                        ]);
+
+                        gl.useProgram(cylinderProgram);
+                        gl.uniform1i(cylinderProgram.u_Clicked, 0);
+                        gl.uniform1i(cylinderProgram.u_isTree, 1);
+                        gl.uniform1i(cylinderProgram.u_LightOff, is_selected_s);
+                        initPositions(gl, cylinderProgram, selected[1]);
+                        gl.vertexAttrib4f(cylinderProgram.a_Color, 0.0, 1.0, 0.0, 1.0);
+                        initLightColor(gl, cylinderProgram);
+                        initLightDirection(gl, cylinderProgram);
+                        initLightPos(gl, cylinderProgram);
+                        //initMatrix(gl, cylinderProgram, toggle1, toggle2);
+                        initMatrix2(gl, cylinderProgram);
+                        initTranslation(gl, cylinderProgram, selected[2], selected[3], selected[4], toggle2);
+                        gl.uniform1f(cylinderProgram.u_shininessVal, 1.0);
+                        initScale(gl, cylinderProgram);
+                        initRotate(gl, cylinderProgram);
+                        var len;
+                        if (selected[1] == 0) {
+                            len = cylinderl.length / 3;
+                        }
+                        else {
+                            len = cylinderr.length / 3;
+                        }
+                        if (toggle3 == 0) { // Flat shading
+                            initNormals(gl, cylinderProgram, selected[1], 0);
+                            gl.drawArrays(gl.TRIANGLES, 0, len);
+                        }
+                        else if (toggle3 == 1) { // smooth
+                            initNormals(gl, cylinderProgram, selected[1], 1);
+                            gl.drawArrays(gl.TRIANGLES, 0, len);
+                        }
+                        else if (toggle3 == 2) { // wireframe using flat shading normals
+                            initNormals(gl, cylinderProgram, selected[1], 0);
+                            gl.drawArrays(gl.LINES, 0, len);
+                        }
+                        var newmap = map[selected[0]]; // get the selected tree in map
+                        // update selected tree's status
+                        map[selected[0]] = [];
+                        newmap[1] = 1;
+                        newmap[3] = selected[2]; // update x
+                        newmap[4] = selected[3]; // update y
+                        newmap[5] = selected[4]; // update z
+                        newmap[6] = selected[5]; // update scaling factor
+                        newmap[7] = selected[6]; // update rotational angle by x axis
+                        newmap[8] = selected[7]; // update rotational angle by z axis
+                        map[selected[0]] = newmap;
+                    }
+                }
+                requestAnimationFrame(dbclick);
+            };
+            //draw(gl,cylinderProgram);
+            //dbclick(gl, cylinderProgram);
+            dbclick();
+        }
+    }
+    //if (isDb) {
+    //    console.log('1');
+    //    dbclick(gl, cylinderProgram);
+    //}
     canvas.onmousedown = function (ev) {
         var x = ev.clientX; // x coordinate of a mouse pointer
         var y = ev.clientY; // y coordinate of a mouse pointer
@@ -1217,26 +1380,23 @@ function initMatrix(gl, cylinderProgram, tag1, tag2) {
         if (tag2 == 0) { //Ortho
             mvpMatrix.setOrtho(-200, 200, -200, 200, -1000, 1000);
             mvpMatrix.lookAt(0, 0, 200 + camera1, 0, 0, 0, 0, 1, 0);
-            gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
         else {
             mvpMatrix.setPerspective(90 + zooming, 1, 100, 1000);
             mvpMatrix.lookAt(0, 0, 200 + camera1, 0, 0, 0, 0, 1, 0);
-            gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
     }
     else { // Side
         if (tag2 == 0) { //Ortho
             mvpMatrix.setOrtho(-200, 200, -200, 200, -1000, 1000);
             mvpMatrix.lookAt(0, -200 / camera2, 75 / camera2, 0, 0, 0, 0, 1, 0);
-            gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
         else {
             mvpMatrix.setPerspective(90 + zooming, 1, 100, 1000);
             mvpMatrix.lookAt(0, -200 / camera2, 75 / camera2, 0, 0, 0, 0, 1, 0);
-            gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
         }
     }
+    gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
 }
 
 /* initTranslation
@@ -1458,4 +1618,38 @@ function setPositions() {
             indices.push(p2 + 1);
         }
     }
+}
+
+// Rotation angle (degrees/second)
+var ANGLE_STEP = 30.0;
+// Last time that this function was called
+var g_last = Date.now();
+function animate(angle) {
+    // Calculate the elapsed time
+    var now = Date.now();
+    var elapsed = now - g_last;
+    g_last = now;
+    // Update the current rotation angle (adjusted by the elapsed time)
+    var newAngle = angle + (ANGLE_STEP * elapsed) / 1000.0;
+    return newAngle %= 360;
+}
+
+var currentAngle = 0.0;  // Current rotation angle
+function initMatrix2(gl, cylinderProgram) {
+    gl.useProgram(cylinderProgram);
+    var mvpMatrix = new Matrix4();
+    var vpMatrix = new Matrix4();
+    var modelMatrix = new Matrix4();
+    currentAngle = animate(currentAngle);  // Update the rotation angle
+    if (toggle2 == 0) { //Ortho
+        vpMatrix.setOrtho(-200, 200, -200, 200, -1000, 1000);
+    }
+    else {
+        vpMatrix.setPerspective(90, 1, 100, 1000);
+    }
+    // Calculate the model matrix
+    modelMatrix.setRotate(currentAngle, 0, 0, 1); // Rotate around the z-axis
+    vpMatrix.lookAt(200 * selected[2], 200 * selected[3], 0, 200, 0, 0, 0, 0, 1);
+    mvpMatrix.set(vpMatrix).multiply(modelMatrix);
+    gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
 }
