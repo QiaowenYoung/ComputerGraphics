@@ -149,7 +149,9 @@ var camera2 = 1.0; // camera2 position
 var isCamera = 0; // whether you are changing camera's position
 var isPanning = 0;
 var Transx, Transy;
+var panx = 0, pany = 0;
 var isDb = 0;
+var isE = 0;
 
 var scale = new Float32Array([ // scaling matrix
     1.0, 0.0, 0.0, 0.0,
@@ -252,6 +254,7 @@ function main() {
         redraw(ev, gl, canvas, cylinderProgram);
         if (selected.length != 0) { // double click on a tree
             isDb = 1;
+            currentAngle = 0;
         }
         //draw(gl,cylinderProgram);
         //dbclick(gl, cylinderProgram);
@@ -260,6 +263,23 @@ function main() {
             requestAnimationFrame(dbclick);
         }
         dbclick();
+    }
+
+    canvas.addEventListener('keydown', dokeydown, false);
+    function dokeydown(ev) {
+        if (ev.keyCode == 69 && selected.length != 0 && isE == 0) {
+            isE = 1;
+            currentAngle = 0;
+            console.log(1);
+        }
+        else if (ev.keyCode == 69 && selected.length != 0 && isE == 1) {
+            isE = 0; // press "e" again to change view to normal mode
+        }
+        var presse = function () {
+            draw(gl, cylinderProgram);
+            requestAnimationFrame(presse);
+        }
+        presse();
     }
 
     canvas.onmousedown = function (ev) {
@@ -339,25 +359,31 @@ function main() {
              */
             offx1 = x;
             offy1 = y;
+            draw(gl, cylinderProgram);
         }
         if (isMoving_s && is_clicked_s) { // translation of the sphere
             selected_s[0] += x - offxs;
             selected_s[1] += y - offys;
             offxs = x;
             offys = y;
+            draw(gl, cylinderProgram);
         }
         if (isPanning) {
-            for (var i = 0; i < count; i++) {
+            /*for (var i = 0; i < count; i++) {
                 var newmap = map[i];
                 newmap[3] -= x - Transx;
                 newmap[4] -= y - Transy;
-            }
+            }*/
+            panx += x - Transx;
+            pany += y - Transy;
             Transx = x;
             Transy = y;
+            draw(gl, cylinderProgram);
         }
         if (isUp) {
             selected[4] += (offz - y) / 5;
             offz = y;
+            draw(gl, cylinderProgram);
         }
         if (isRotating == 1) { // rotation
             console.log('rotation: mousemove');
@@ -379,6 +405,7 @@ function main() {
             }
             offx2 = x;
             offy2 = y;
+            draw(gl, cylinderProgram);
         }
         else if (isRotating == 2) { // rotate by x axis
             console.log('rotation: mousemove, rotate by x axis');
@@ -387,13 +414,14 @@ function main() {
              */
             selected[6] = selected[6] + 2 * Math.PI * (y - offy2);
             offy2 = y;
+            draw(gl, cylinderProgram);
         }
         else if (isRotating == 3) { // rotate by z axis
             console.log('rotation: mousemove, rotate by z axis');
             selected[7] = selected[7] - 2 * Math.PI * (x - offx2);
             offx2 = x;
+            draw(gl, cylinderProgram);
         }
-        draw(gl, cylinderProgram);
     }
 
     canvas.onmouseup = function (ev) {
@@ -407,8 +435,9 @@ function main() {
             console.log('translation: mouseup');
             isMoving = 0;
             if (x0 == x && y0 == y) { // the click means to deselecte the tree; see explanations in line 178~186
-                redraw(ev, gl, canvas, cylinderProgram);
                 isDb = 0;
+                isE = 0;
+                redraw(ev, gl, canvas, cylinderProgram);
             }
         }
         else if (ev.button == 2 && selected.length != 0 && isRotating != 0) { // rotation ends
@@ -416,11 +445,11 @@ function main() {
             isRotating = 0;
         }
         else if (ev.button == 0) { // translation of the sphere ends or turn on/off the sphere or create a new tree
+            isMoving_s = 0;
+            isPanning = 0;
             if (xs0 == x && ys0 == y) { // click means to turn on/off the sphere or create a new tree
                 redraw(ev, gl, canvas, cylinderProgram);
             }
-            isMoving_s = 0;
-            isPanning = 0;
         }
         else if (ev.which == 2 && selected.length != 0 && isUp == 1) { // translation in z direction ends
             console.log('middle up');
@@ -633,10 +662,12 @@ function redraw(ev, gl, canvas, cylinderProgram) {
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
     gl.enable(gl.DEPTH_TEST);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    var x = ev.clientX, y = ev.clientY;
+    var x = ev.clientX; // x coordinate of a mouse pointer
+    var y = ev.clientY; // y coordinate of a mouse pointer
     var rect = ev.target.getBoundingClientRect();
-    x = x - rect.left;
-    y = rect.bottom - y;
+
+    x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
+    y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
     for (var i = 0; i < count; i++) {
         // redraw all the trees using different colors
         var newmap = map[i];
@@ -816,6 +847,9 @@ function draw(gl, cylinderProgram) {
             if (isDb) {
                 initMatrix2(gl, cylinderProgram);
             }
+            if (isE) {
+                initMatrix3(gl, cylinderProgram);
+            }
             initTranslation(gl, cylinderProgram, newmap[3], newmap[4], newmap[5], toggle2);
             initGloss(gl, cylinderProgram, newmap[2]);
             initScale(gl, cylinderProgram);
@@ -840,7 +874,7 @@ function draw(gl, cylinderProgram) {
                 gl.drawArrays(gl.LINES, 0, len);
             }
         }
-        else if (isDb == 0){ // the tree is being selected and not yaw
+        else if (isDb == 0) { // the tree is being selected and not yaw
             var s = selected[5];
             scale = new Float32Array([
                 s, 0.0, 0.0, 0.0,
@@ -876,6 +910,9 @@ function draw(gl, cylinderProgram) {
             initLightDirection(gl, cylinderProgram);
             initLightPos(gl, cylinderProgram);
             initMatrix(gl, cylinderProgram, toggle1, toggle2);
+            if (isE) {
+                initMatrix3(gl, cylinderProgram);
+            }
             initTranslation(gl, cylinderProgram, selected[2], selected[3], selected[4], toggle2);
             gl.uniform1f(cylinderProgram.u_shininessVal, 1.0);
             initScale(gl, cylinderProgram);
@@ -1236,22 +1273,20 @@ function initMatrix(gl, cylinderProgram, tag1, tag2) {
     if (tag1 == 0) { // Top view
         if (tag2 == 0) { //Ortho
             mvpMatrix.setOrtho(-200, 200, -200, 200, -1000, 1000);
-            mvpMatrix.lookAt(0, 0, 200 + camera1, 0, 0, 0, 0, 1, 0);
         }
         else {
             mvpMatrix.setPerspective(90 + zooming, 1, 100, 1000);
-            mvpMatrix.lookAt(0, 0, 200 + camera1, 0, 0, 0, 0, 1, 0);
         }
+        mvpMatrix.lookAt(200 * panx, 200 * pany, 200 + camera1, 200 * panx, 200 * pany, 0, 0, 1, 0);
     }
     else { // Side
         if (tag2 == 0) { //Ortho
             mvpMatrix.setOrtho(-200, 200, -200, 200, -1000, 1000);
-            mvpMatrix.lookAt(0, -200 / camera2, 75 / camera2, 0, 0, 0, 0, 1, 0);
         }
         else {
             mvpMatrix.setPerspective(90 + zooming, 1, 100, 1000);
-            mvpMatrix.lookAt(0, -200 / camera2, 75 / camera2, 0, 0, 0, 0, 1, 0);
         }
+        mvpMatrix.lookAt(200 * panx, -200 / camera2 + 200 * pany, 75 / camera2, 200 * panx, 200 * pany, 0, 0, 1, 0);
     }
     gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
 }
@@ -1341,9 +1376,6 @@ function drawSphere(gl, cylinderProgram) {
     var modelMatrix = new Matrix4();  // Model matrix
     var normalMatrix = new Matrix4(); // Transformation matrix for normals
 
-    if (isDb) {
-        modelMatrix.setRotate(currentAngle, 0, 0, 1); // Rotate around the z-axis
-    }
     // Calculate the view projection matrix
     if (toggle2 == 0) { // ortho view
         gl.uniform4f(cylinderProgram.u_Translation, -0.5 + selected_s[0], -0.5 + selected_s[1], 0, 0);
@@ -1488,7 +1520,27 @@ function initMatrix2(gl, cylinderProgram) {
         vpMatrix.setPerspective(90, 1, 100, 1000);
         vpMatrix.lookAt(200 * selected[2], 200 * selected[3], 0, 200 * Math.cos(angle), 200 * Math.cos(angle), 0, 0, 0, 1);
     }
+    mvpMatrix.set(vpMatrix).multiply(modelMatrix);
+    gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
+}
+
+function initMatrix3(gl, cylinderProgram) {
+    gl.useProgram(cylinderProgram);
+    var mvpMatrix = new Matrix4();
+    var vpMatrix = new Matrix4();
+    var modelMatrix = new Matrix4();
+    currentAngle = animate(currentAngle);
+    var angle = currentAngle * Math.PI / 180;
+    if (toggle2 == 0) { //Ortho
+        vpMatrix.setOrtho(-200, 200, -200, 200, -1000, 1000);
+        vpMatrix.lookAt(400 * selected[2] + 100 * Math.cos(angle), 400 * selected[3] + 100 * Math.sin(angle), 0, 400 * selected[2], 400 * selected[3], 0, 0, 0, 1);
+    }
+    else {
+        vpMatrix.setPerspective(90, 1, 10, 1000);
+        vpMatrix.lookAt(400 * selected[2] + 100 * Math.cos(angle), 400 * selected[3] + 100 * Math.sin(angle), 0, 400 * selected[2], 400 * selected[3], 0, 0, 0, 1);
+    }
     // Calculate the model matrix
+    //modelMatrix.setRotate(currentAngle, 0, 0, 1);
     mvpMatrix.set(vpMatrix).multiply(modelMatrix);
     gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
 }
