@@ -80,7 +80,7 @@ function main() {
     currentAngle = animate(currentAngle);  // Update the rotation angle
 
     // Calculate the model matrix
-    modelMatrix.setRotate(currentAngle, 0, 1, 0); // Rotate around the y-axis
+    modelMatrix.setRotate(currentAngle, 1, 0, 0); // Rotate around the y-axis
     mvpMatrix.set(vpMatrix).multiply(modelMatrix);
     gl.uniformMatrix4fv(u_MvpMatrix, false, mvpMatrix.elements);
 
