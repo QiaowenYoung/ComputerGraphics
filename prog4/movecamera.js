@@ -1469,7 +1469,7 @@ function animate(angle) {
     g_last = now;
     // Update the current rotation angle (adjusted by the elapsed time)
     var newAngle = angle + (ANGLE_STEP * elapsed) / 1000.0;
-    return newAngle %= 360;
+    return newAngle % 360;
 }
 
 var currentAngle = 0.0;  // Current rotation angle
@@ -1479,16 +1479,16 @@ function initMatrix2(gl, cylinderProgram) {
     var vpMatrix = new Matrix4();
     var modelMatrix = new Matrix4();
     currentAngle = animate(currentAngle);  // Update the rotation angle
+    var angle = currentAngle * Math.PI / 180;
     if (toggle2 == 0) { //Ortho
         vpMatrix.setOrtho(-200, 200, -200, 200, -1000, 1000);
-        vpMatrix.lookAt(200 * selected[2], 200 * selected[3], 0, 200, 0, 0, 0, 0, 1);
+        vpMatrix.lookAt(200 * selected[2], 200 * selected[3], 0, 200 * Math.cos(angle), 200 * Math.cos(angle), 0, 0, 0, 1);
     }
     else {
-        vpMatrix.setPerspective(100, 1, 10, 1000);
-        vpMatrix.lookAt(200 * selected[2], 200 * selected[3], 0, 200, 0, 0, 0, 0, 1);
+        vpMatrix.setPerspective(90, 1, 100, 1000);
+        vpMatrix.lookAt(200 * selected[2], 200 * selected[3], 0, 200 * Math.cos(angle), 200 * Math.cos(angle), 0, 0, 0, 1);
     }
     // Calculate the model matrix
-    modelMatrix.setRotate(currentAngle, 0, 0, 1); // Rotate around the z-axis
     mvpMatrix.set(vpMatrix).multiply(modelMatrix);
     gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
 }
