@@ -1281,7 +1281,6 @@ function initMatrix(gl, cylinderProgram, tag1, tag2) {
             mvpMatrix.setPerspective(90 + zooming, 1, 100, 1000);
         }
         mvpMatrix.lookAt(200 * panx, 200 * pany, 200 + camera1, 200 * panx, 200 * pany, 0, 0, 1, 0);
-        //mvpMatrix.lookAt(0, 0, 200 + camera1, 0, 0, 0, 0, 1, 0);
     }
     else { // Side
         if (tag2 == 0) { //Ortho
@@ -1291,7 +1290,6 @@ function initMatrix(gl, cylinderProgram, tag1, tag2) {
             mvpMatrix.setPerspective(90 + zooming, 1, 100, 1000);
         }
         mvpMatrix.lookAt(200 * panx, -200 / camera2 + 200 * pany, 75 / camera2, 200 * panx, 200 * pany, 0, 0, 1, 0);
-        //mvpMatrix.lookAt(0, -200 / camera2, 75 / camera2, 0, 0, 0, 0, 1, 0);
     }
     gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
 }
