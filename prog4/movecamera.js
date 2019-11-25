@@ -270,7 +270,6 @@ function main() {
         if (ev.keyCode == 69 && selected.length != 0 && isE == 0) {
             isE = 1;
             currentAngle = 0;
-            console.log(1);
         }
         else if (ev.keyCode == 69 && selected.length != 0 && isE == 1) {
             isE = 0; // press "e" again to change view to normal mode
@@ -874,7 +873,7 @@ function draw(gl, cylinderProgram) {
                 gl.drawArrays(gl.LINES, 0, len);
             }
         }
-        else{ // the tree is being selected and not yaw
+        else { // the tree is being selected and not yaw
             var s = selected[5];
             scale = new Float32Array([
                 s, 0.0, 0.0, 0.0,
@@ -1046,7 +1045,7 @@ function click(ev, gl, canvas, cylinderProgram) {
 
     x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
     y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
-    
+
     if (ev.button === 0) {
         var newmap = [];
         newmap.push((26 * count++) % 255); // color.r
@@ -1517,12 +1516,17 @@ function initMatrix2(gl, cylinderProgram) {
     var angle = currentAngle * Math.PI / 180;
     if (toggle2 == 0) { //Ortho
         vpMatrix.setOrtho(-200, 200, -200, 200, -1000, 1000);
-        vpMatrix.lookAt(200 * selected[2], 200 * selected[3], 0, 200 * Math.cos(angle), 200 * Math.cos(angle), 0, 0, 0, 1);
     }
     else {
-        vpMatrix.setPerspective(90, 1, 100, 1000);
-        vpMatrix.lookAt(200 * selected[2], 200 * selected[3], 0, 200 * Math.cos(angle), 200 * Math.cos(angle), 0, 0, 0, 1);
+        vpMatrix.setPerspective(90, 1, 10, 1000);
     }
+    var eyefromx = 200 * selected[2];
+    var eyefromy = 200 * selected[3];
+    var eyetox = eyefromx + 200 * Math.cos(angle);
+    var eyetoy = eyefromy + 200 * Math.sin(angle);
+    console.log(`eyefrom: [${eyefromx}, ${eyefromy}]`);
+    console.log(`eyeto: [${eyetox}, ${eyetoy}]`);
+    vpMatrix.lookAt(eyefromx, eyefromy, 0, eyetox, eyetoy, 0, 0, 0, 1);
     mvpMatrix.set(vpMatrix).multiply(modelMatrix);
     gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
 }
@@ -1536,12 +1540,15 @@ function initMatrix3(gl, cylinderProgram) {
     var angle = currentAngle * Math.PI / 180;
     if (toggle2 == 0) { //Ortho
         vpMatrix.setOrtho(-200, 200, -200, 200, -1000, 1000);
-        vpMatrix.lookAt(200 * selected[2] + 100 * Math.cos(angle), 200 * selected[3] + 100 * Math.sin(angle), 0, 200 * selected[2], 200 * selected[3], 0, 0, 0, 1);
-        }
+    }
     else {
         vpMatrix.setPerspective(90, 1, 10, 1000);
-        vpMatrix.lookAt(200 * selected[2] + 100 * Math.cos(angle), 200 * selected[3] + 100 * Math.sin(angle), 0, 200 * selected[2], 200 * selected[3], 0, 0, 0, 1);
-        }
+    }
+    var eyefromx = 200 * selected[2] + 200 * Math.cos(angle);
+    var eyefromy = 200 * selected[3] + 200 * Math.sin(angle);
+    var eyetox = 200 * selected[2];
+    var eyetoy = 200 * selected[3];
+    vpMatrix.lookAt(eyefromx, eyefromy, 0, eyetox, eyetoy, 0, 0, 0, 1);
     // Calculate the model matrix
     mvpMatrix.set(vpMatrix).multiply(modelMatrix);
     gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
