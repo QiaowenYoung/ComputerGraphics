@@ -1537,13 +1537,12 @@ function initMatrix3(gl, cylinderProgram) {
     if (toggle2 == 0) { //Ortho
         vpMatrix.setOrtho(-200, 200, -200, 200, -1000, 1000);
         vpMatrix.lookAt(200 * selected[2] + 100 * Math.cos(angle), 200 * selected[3] + 100 * Math.sin(angle), 0, 200 * selected[2], 200 * selected[3], 0, 0, 0, 1);
-    }
+        }
     else {
         vpMatrix.setPerspective(90, 1, 10, 1000);
         vpMatrix.lookAt(200 * selected[2] + 100 * Math.cos(angle), 200 * selected[3] + 100 * Math.sin(angle), 0, 200 * selected[2], 200 * selected[3], 0, 0, 0, 1);
-    }
+        }
     // Calculate the model matrix
-    //modelMatrix.setRotate(currentAngle, 0, 0, 1);
     mvpMatrix.set(vpMatrix).multiply(modelMatrix);
     gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
 }
