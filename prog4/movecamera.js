@@ -317,9 +317,11 @@ function main() {
         else if (selected.length == 0 && ev.button == 0) { // translation of the sphere or create a tree here or select a tree
             is_clicked_s = decideClickOn(ev, gl, cylinderProgram);
             if (is_clicked_s == 1) { // if the mouse is on sphere
+                console.log(1);
                 isMoving_s = 1; // the sphere is ready to be moved
             }
             else if (is_clicked_s == 2) { // the mouse is on blank; set camera ready to be moved
+                console.log(2);
                 isPanning = 1;
                 Transx = x;
                 Transy = y;
@@ -447,7 +449,7 @@ function main() {
         else if (ev.button == 0) { // translation of the sphere ends or turn on/off the sphere or create a new tree
             isMoving_s = 0;
             isPanning = 0;
-            if (xs0 == x && ys0 == y) { // click means to turn on/off the sphere or create a new tree
+            if (xs0 == x && ys0 == y) { // click means to turn on/off the sphere or create a new tree or select a tree
                 redraw(ev, gl, canvas, cylinderProgram);
             }
         }
@@ -666,8 +668,8 @@ function redraw(ev, gl, canvas, cylinderProgram) {
     var y = ev.clientY; // y coordinate of a mouse pointer
     var rect = ev.target.getBoundingClientRect();
 
-    x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
-    y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
+    x = x - rect.left;
+    y = rect.bottom - y;
     for (var i = 0; i < count; i++) {
         // redraw all the trees using different colors
         var newmap = map[i];
@@ -1043,14 +1045,14 @@ function click(ev, gl, canvas, cylinderProgram) {
 
     x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
     y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
-
+    
     if (ev.button === 0) {
         var newmap = [];
         newmap.push((26 * count++) % 255); // color.r
         newmap.push(0); // 0 indicates that the point has not been clicked
         newmap.push(0); // left click
-        newmap.push(x); // x
-        newmap.push(y); // y
+        newmap.push(x + panx); // x
+        newmap.push(y + pany); // y
         newmap.push(0.0); // z
         newmap.push(1.0); // Scaling factor
         newmap.push(0.0); // rotational angle by x axis
@@ -1062,8 +1064,8 @@ function click(ev, gl, canvas, cylinderProgram) {
         newmap.push((26 * count++) % 255); // color.r
         newmap.push(0); // 0 indicates that the point has not been clicked
         newmap.push(1); // right click
-        newmap.push(x); // x
-        newmap.push(y); // y
+        newmap.push(x + panx); // x
+        newmap.push(y + pany); // y
         newmap.push(0.0); // z
         newmap.push(1.0); // Scaling factor
         newmap.push(0.0); // rotational angle by x axis
@@ -1278,6 +1280,7 @@ function initMatrix(gl, cylinderProgram, tag1, tag2) {
             mvpMatrix.setPerspective(90 + zooming, 1, 100, 1000);
         }
         mvpMatrix.lookAt(200 * panx, 200 * pany, 200 + camera1, 200 * panx, 200 * pany, 0, 0, 1, 0);
+        //mvpMatrix.lookAt(0, 0, 200 + camera1, 0, 0, 0, 0, 1, 0);
     }
     else { // Side
         if (tag2 == 0) { //Ortho
@@ -1287,6 +1290,7 @@ function initMatrix(gl, cylinderProgram, tag1, tag2) {
             mvpMatrix.setPerspective(90 + zooming, 1, 100, 1000);
         }
         mvpMatrix.lookAt(200 * panx, -200 / camera2 + 200 * pany, 75 / camera2, 200 * panx, 200 * pany, 0, 0, 1, 0);
+        //mvpMatrix.lookAt(0, -200 / camera2, 75 / camera2, 0, 0, 0, 0, 1, 0);
     }
     gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
 }
