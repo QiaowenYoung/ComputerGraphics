@@ -317,11 +317,9 @@ function main() {
         else if (selected.length == 0 && ev.button == 0) { // translation of the sphere or create a tree here or select a tree
             is_clicked_s = decideClickOn(ev, gl, cylinderProgram);
             if (is_clicked_s == 1) { // if the mouse is on sphere
-                console.log(1);
                 isMoving_s = 1; // the sphere is ready to be moved
             }
             else if (is_clicked_s == 2) { // the mouse is on blank; set camera ready to be moved
-                console.log(2);
                 isPanning = 1;
                 Transx = x;
                 Transy = y;
@@ -876,7 +874,7 @@ function draw(gl, cylinderProgram) {
                 gl.drawArrays(gl.LINES, 0, len);
             }
         }
-        else if (isDb == 0) { // the tree is being selected and not yaw
+        else{ // the tree is being selected and not yaw
             var s = selected[5];
             scale = new Float32Array([
                 s, 0.0, 0.0, 0.0,
@@ -912,6 +910,9 @@ function draw(gl, cylinderProgram) {
             initLightDirection(gl, cylinderProgram);
             initLightPos(gl, cylinderProgram);
             initMatrix(gl, cylinderProgram, toggle1, toggle2);
+            if (isDb) {
+                initMatrix2(gl, cylinderProgram);
+            }
             if (isE) {
                 initMatrix3(gl, cylinderProgram);
             }
@@ -1537,11 +1538,11 @@ function initMatrix3(gl, cylinderProgram) {
     var angle = currentAngle * Math.PI / 180;
     if (toggle2 == 0) { //Ortho
         vpMatrix.setOrtho(-200, 200, -200, 200, -1000, 1000);
-        vpMatrix.lookAt(400 * selected[2] + 100 * Math.cos(angle), 400 * selected[3] + 100 * Math.sin(angle), 0, 400 * selected[2], 400 * selected[3], 0, 0, 0, 1);
+        vpMatrix.lookAt(200 * selected[2] + 100 * Math.cos(angle), 200 * selected[3] + 100 * Math.sin(angle), 0, 200 * selected[2], 200 * selected[3], 0, 0, 0, 1);
     }
     else {
         vpMatrix.setPerspective(90, 1, 10, 1000);
-        vpMatrix.lookAt(400 * selected[2] + 100 * Math.cos(angle), 400 * selected[3] + 100 * Math.sin(angle), 0, 400 * selected[2], 400 * selected[3], 0, 0, 0, 1);
+        vpMatrix.lookAt(200 * selected[2] + 100 * Math.cos(angle), 200 * selected[3] + 100 * Math.sin(angle), 0, 200 * selected[2], 200 * selected[3], 0, 0, 0, 1);
     }
     // Calculate the model matrix
     //modelMatrix.setRotate(currentAngle, 0, 0, 1);
