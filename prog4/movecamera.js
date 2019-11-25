@@ -1526,7 +1526,7 @@ function initMatrix2(gl, cylinderProgram) {
     var eyetoy = eyefromy + 200 * Math.sin(angle);
     console.log(`eyefrom: [${eyefromx}, ${eyefromy}]`);
     console.log(`eyeto: [${eyetox}, ${eyetoy}]`);
-    vpMatrix.lookAt(eyefromx, eyefromy, 0, eyetox, eyetoy, 0, 0, 0, 1);
+    vpMatrix.lookAt(eyefromx, eyefromy, 50, eyetox, eyetoy, 50, 0, 0, 1);
     mvpMatrix.set(vpMatrix).multiply(modelMatrix);
     gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
 }
@@ -1544,11 +1544,13 @@ function initMatrix3(gl, cylinderProgram) {
     else {
         vpMatrix.setPerspective(90, 1, 10, 1000);
     }
-    var eyefromx = 200 * selected[2] + 200 * Math.cos(angle);
-    var eyefromy = 200 * selected[3] + 200 * Math.sin(angle);
+    var eyefromx = 200 * selected[2] + 50 * Math.cos(angle);
+    var eyefromy = 200 * selected[3] + 50 * Math.sin(angle);
     var eyetox = 200 * selected[2];
     var eyetoy = 200 * selected[3];
-    vpMatrix.lookAt(eyefromx, eyefromy, 0, eyetox, eyetoy, 0, 0, 0, 1);
+    console.log(`eyefrom: [${eyefromx}, ${eyefromy}]`);
+    console.log(`eyeto: [${eyetox}, ${eyetoy}]`);
+    vpMatrix.lookAt(eyefromx, eyefromy, 50, eyetox, eyetoy, 50, 0, 0, 1);
     // Calculate the model matrix
     mvpMatrix.set(vpMatrix).multiply(modelMatrix);
     gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
