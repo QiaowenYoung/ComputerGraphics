@@ -1633,7 +1633,6 @@ function initMatrix3(gl, cylinderProgram, tx, ty, tz) {
     var eyetox = 0;
     var eyetoy = 0;
     vpMatrix.lookAt(eyefromx, eyefromy, 80, eyetox, eyetoy, 80, 0, 0, 1);
-    // Calculate the model matrix
     mvpMatrix.set(vpMatrix).multiply(modelMatrix);
     gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
 }
