@@ -19,8 +19,9 @@ var VSHADER_SOURCE =
     'uniform mat4 u_rotateMatrix_x;\n' + // rotate by x axis
     'uniform mat4 u_rotateMatrix_z;\n' + // rotate by z axis
     'uniform bool u_isTree;\n' + // to choose between drawing tree and drawing sphere
+    'uniform bool u_isYawOrExamine;\n' + // if current mode is yaw or examine, use a different way to draw
     'void main() {\n' +
-    '   if(u_isTree) {\n' + // draw trees
+    '   if(u_isTree && !u_isYawOrExamine) {\n' + // draw trees
     '       vec4 v_vertPos4 = u_mvpMatrix * u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * a_Position;\n' +
     '       v_vertPos = vec3(v_vertPos4) / v_vertPos4.w;\n' + // view direction
     '       gl_Position = u_mvpMatrix * u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * a_Position + u_Translation;\n' +
@@ -67,12 +68,87 @@ var VSHADER_SOURCE =
     '       }\n' +
     '   }\n' +
 
-    '   else {\n' + // draw sphere
+    '   else if (u_isTree && u_isYawOrExamine){\n' +
+    '       vec4 v_vertPos4 = u_mvpMatrix * u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * a_Position;\n' +
+    '       v_vertPos = vec3(v_vertPos4) / v_vertPos4.w;\n' + // view direction
+    '       gl_Position = u_mvpMatrix * (u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * a_Position + u_Translation);\n' +
+    // Make the length of the normal 1.0
+    '       vec3 normal = normalize((u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * vec4(a_Normal,0.0)).xyz);\n' +
+    // Dot product of the light direction and the orientation of a surface (the normal)
+    '       float nDotL = max(dot(normalize(u_LightDirection), normal), 0.0);\n' +
+    // Calculate the color due to diffuse reflection
+    '       vec3 diffuse = u_LightColor * a_Color.rgb * nDotL;\n' +
+    // Calculate specular
+    '       float specular = 0.0;\n' +
+    '       if(nDotL > 0.0) {\n' +
+    '           vec3 R = reflect(-normalize(u_LightDirection), normal);\n' +
+    '           vec3 V = normalize(-v_vertPos);\n' +
+    '           float specAngle = max(dot(R, V), 0.0);\n' +
+    '           specular = pow(specAngle, u_shininessVal);\n' +
+    '       }\n' +
+    '       vec3 s = vec3(1.0, 1.0, 1.0) * vec3(1.0, 1.0, 1.0) * specular;\n' +
+
+    // Point light
+    '       vec3 lightDirection2 = normalize(u_LightPos - vec3(u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * a_Position + u_Translation));\n' +
+    '       vec3 normal2 = normalize((u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * vec4(a_Normal,0.0) + u_Translation).xyz);\n' +
+    '       v_vertPos4 = u_mvpMatrix * u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * a_Position + u_Translation;\n' +
+    '       v_vertPos = vec3(v_vertPos4) / v_vertPos4.w;\n' + // view direction
+    '       float nDotL2 = max(dot(lightDirection2, normal2), 0.0);\n' +
+    '       vec3 diffuse2 = vec3(0.5, 0.5, 1) * a_Color.rgb * nDotL2;\n' +
+    '       float specular2 = 0.0;\n' +
+    '       if(nDotL2 > 0.0) {\n' +
+    '           vec3 R2 = reflect(-lightDirection2, normal);\n' +
+    '           vec3 V2 = normalize(-v_vertPos);\n' +
+    '           float specAngle2 = max(dot(R2, V2), 0.0);\n' +
+    '           specular2 = pow(specAngle2, u_shininessVal);\n' +
+    '       }\n' +
+    '       vec3 s2 = vec3(0.5, 0.5, 1.0) * vec3(1.0, 1.0, 1.0) * specular2;\n' +
+
+    '       v_Color = vec4(diffuse + s, a_Color.a);\n' +
+
+    '       if (!u_LightOff) {\n' + // u_LightOff == 0, meaning that the light is turned on
+    '           v_Color = vec4(diffuse + diffuse2 + s + s2, a_Color.a);\n' +
+    '       }\n' +
+
+    '       if (u_Clicked) {\n' + //  Draw in the selected color if mouse is pressed
+    '           v_Color = a_Color_2;\n' +
+    '       }\n' +
+    '   }\n' +
+    '   else if (!u_isTree && !u_isYawOrExamine){\n' + // draw sphere
     '       vec4 color = vec4(1.0, 1.0, 0.0, 1.0);\n' + // Sphere color
     '       if (u_LightOff) {\n' +
     '           color = vec4(0.5, 0.5, 0.0, 1.0);\n' + // if turned off, make it a little darker
     '       }\n' +
     '       gl_Position = u_mvpMatrix * a_Position + u_Translation;\n' +
+    // Calculate a normal to be fit with a model matrix, and make it 1.0 in length
+    '       vec3 normal = normalize(vec3(u_NormalMatrix * vec4(a_Normal, 0.0)));\n' +
+    // Calculate the light direction and make it 1.0 in length
+    '       vec3 lightDirection = normalize(u_LightDirection);\n' +
+    // The dot product of the light direction and the normal
+    '       float nDotL = max(dot(lightDirection, normal), 0.0);\n' +
+    // Calculate the color due to diffuse reflection
+    '       vec3 diffuse = u_LightColor * color.rgb * nDotL;\n' +
+    '       float specular = 0.0;\n' +
+    '       if(nDotL > 0.0) {\n' +
+    '           vec3 R = reflect(-lightDirection, normal);\n' +
+    '           vec3 V = normalize(-vec3(u_mvpMatrix * a_Position));\n' +
+    '           float specAngle = max(dot(R, V), 0.0);\n' +
+    '           specular = pow(specAngle, 20.0);\n' +
+    '       }\n' +
+    '       vec3 s = vec3(1.0, 1.0, 1.0) * vec3(1.0, 1.0, 1.0) * specular;\n' +
+
+    '       v_Color = vec4(diffuse + s, color.a);\n' +
+
+    '       if (u_Clicked) {\n' +
+    '           v_Color = a_Color_2;\n' +
+    '       }\n' +
+    '   }\n' +
+    '   else if (!u_isTree && u_isYawOrExamine){\n' + // draw sphere
+    '       vec4 color = vec4(1.0, 1.0, 0.0, 1.0);\n' + // Sphere color
+    '       if (u_LightOff) {\n' +
+    '           color = vec4(0.5, 0.5, 0.0, 1.0);\n' + // if turned off, make it a little darker
+    '       }\n' +
+    '       gl_Position = u_mvpMatrix * (a_Position + u_Translation);\n' +
     // Calculate a normal to be fit with a model matrix, and make it 1.0 in length
     '       vec3 normal = normalize(vec3(u_NormalMatrix * vec4(a_Normal, 0.0)));\n' +
     // Calculate the light direction and make it 1.0 in length
@@ -147,11 +223,11 @@ var zooming = 0.0; // zoom in/out
 var camera1 = 0.0; // camera1 position
 var camera2 = 1.0; // camera2 position
 var isCamera = 0; // whether you are changing camera's position
-var isPanning = 0;
-var Transx, Transy;
-var panx = 0, pany = 0;
-var isDb = 0;
-var isE = 0;
+var isPanning = 0; // whether you are doing panning
+var Transx, Transy; // use in panning, for animation
+var panx = 0, pany = 0; // offset of your mouse during panning
+var isDb = 0; // whether you double click a tree
+var isE = 0; // whether you do examine work
 
 var scale = new Float32Array([ // scaling matrix
     1.0, 0.0, 0.0, 0.0,
@@ -228,13 +304,15 @@ function main() {
     cylinderProgram.u_NormalMatrix = gl.getUniformLocation(cylinderProgram, 'u_NormalMatrix');
     cylinderProgram.u_isTree = gl.getUniformLocation(cylinderProgram, 'u_isTree');
     cylinderProgram.u_LightPos = gl.getUniformLocation(cylinderProgram, 'u_LightPos');
+    cylinderProgram.u_isYawOrExamine = gl.getUniformLocation(cylinderProgram, 'u_isYawOrExamine');
 
     if (cylinderProgram.a_Position < 0 || cylinderProgram.a_Color < 0 || cylinderProgram.a_Color_2 < 0 ||
         cylinderProgram.a_Normal < 0 || cylinderProgram.u_ViewMatrix < 0 || cylinderProgram.u_ProjMatrix < 0 ||
         cylinderProgram.u_Translation < 0 || cylinderProgram.u_LightColor < 0 || cylinderProgram.u_LightDirection < 0 ||
         cylinderProgram.u_shininessVal < 0 || cylinderProgram.u_Clicked < 0 || cylinderProgram.u_rotateMatrix_x < 0 ||
         cylinderProgram.u_rotateMatrix_z < 0 || cylinderProgram.u_scaleMatrix < 0 || cylinderProgram.u_NormalMatrix < 0 ||
-        cylinderProgram.u_isTree < 0 || cylinderProgram.u_LightPos < 0 || cylinderProgram.u_LightOff < 0) {
+        cylinderProgram.u_isTree < 0 || cylinderProgram.u_LightPos < 0 || cylinderProgram.u_LightOff < 0 ||
+        cylinderProgram.u_isYawOrExamine < 0) {
         console.log('Failed to locate variables for cylinder');
         return -1;
     }
@@ -256,8 +334,6 @@ function main() {
             isDb = 1;
             currentAngle = 0;
         }
-        //draw(gl,cylinderProgram);
-        //dbclick(gl, cylinderProgram);
         var dbclick = function () {
             draw(gl, cylinderProgram);
             requestAnimationFrame(dbclick);
@@ -368,11 +444,6 @@ function main() {
             draw(gl, cylinderProgram);
         }
         if (isPanning) {
-            /*for (var i = 0; i < count; i++) {
-                var newmap = map[i];
-                newmap[3] -= x - Transx;
-                newmap[4] -= y - Transy;
-            }*/
             panx += x - Transx;
             pany += y - Transy;
             Transx = x;
@@ -610,6 +681,7 @@ function decideClickOn(ev, gl, cylinderProgram) {
         gl.uniform1i(cylinderProgram.u_Clicked, 1);
         gl.uniform1i(cylinderProgram.u_isTree, 1); // draw trees
         gl.uniform1i(cylinderProgram.u_LightOff, is_selected_s);
+        gl.uniform1i(cylinderProgram.u_isYawOrExamine, 0);
         gl.vertexAttrib4f(cylinderProgram.a_Color_2, color, 0.0, 0.0, 1.0);
         initScale(gl, cylinderProgram);
         initRotate(gl, cylinderProgram);
@@ -710,6 +782,7 @@ function redraw(ev, gl, canvas, cylinderProgram) {
         gl.uniform1i(cylinderProgram.u_Clicked, 1);
         gl.uniform1i(cylinderProgram.u_isTree, 1); // draw trees
         gl.uniform1i(cylinderProgram.u_LightOff, is_selected_s);
+        gl.uniform1i(cylinderProgram.u_isYawOrExamine, 0);
         gl.vertexAttrib4f(cylinderProgram.a_Color_2, color, 0.0, 0.0, 1.0);
         initScale(gl, cylinderProgram);
         initRotate(gl, cylinderProgram);
@@ -837,19 +910,22 @@ function draw(gl, cylinderProgram) {
             gl.uniform1i(cylinderProgram.u_Clicked, 0);
             gl.uniform1i(cylinderProgram.u_isTree, 1);
             gl.uniform1i(cylinderProgram.u_LightOff, is_selected_s);
+            gl.uniform1i(cylinderProgram.u_isYawOrExamine, 0);
             initPositions(gl, cylinderProgram, newmap[2]);
             initColors(gl, cylinderProgram, newmap[2]);
             initLightColor(gl, cylinderProgram);
             initLightDirection(gl, cylinderProgram);
             initLightPos(gl, cylinderProgram);
+            initTranslation(gl, cylinderProgram, newmap[3], newmap[4], newmap[5], toggle2);
             initMatrix(gl, cylinderProgram, toggle1, toggle2);
             if (isDb) {
-                initMatrix2(gl, cylinderProgram);
+                initMatrix2(gl, cylinderProgram, newmap[3], newmap[4], newmap[5]);
+                gl.uniform1i(cylinderProgram.u_isYawOrExamine, 1);
             }
             if (isE) {
-                initMatrix3(gl, cylinderProgram);
+                initMatrix3(gl, cylinderProgram, newmap[3], newmap[4], newmap[5]);
+                gl.uniform1i(cylinderProgram.u_isYawOrExamine, 1);
             }
-            initTranslation(gl, cylinderProgram, newmap[3], newmap[4], newmap[5], toggle2);
             initGloss(gl, cylinderProgram, newmap[2]);
             initScale(gl, cylinderProgram);
             initRotate(gl, cylinderProgram);
@@ -903,19 +979,22 @@ function draw(gl, cylinderProgram) {
             gl.uniform1i(cylinderProgram.u_Clicked, 0);
             gl.uniform1i(cylinderProgram.u_isTree, 1);
             gl.uniform1i(cylinderProgram.u_LightOff, is_selected_s);
+            gl.uniform1i(cylinderProgram.u_isYawOrExamine, 0);
             initPositions(gl, cylinderProgram, selected[1]);
             gl.vertexAttrib4f(cylinderProgram.a_Color, 0.0, 1.0, 0.0, 1.0);
             initLightColor(gl, cylinderProgram);
             initLightDirection(gl, cylinderProgram);
             initLightPos(gl, cylinderProgram);
+            initTranslation(gl, cylinderProgram, selected[2], selected[3], selected[4], toggle2);
             initMatrix(gl, cylinderProgram, toggle1, toggle2);
             if (isDb) {
-                initMatrix2(gl, cylinderProgram);
+                initMatrix2(gl, cylinderProgram, selected[2], selected[3], selected[4]);
+                gl.uniform1i(cylinderProgram.u_isYawOrExamine, 1);
             }
             if (isE) {
-                initMatrix3(gl, cylinderProgram);
+                initMatrix3(gl, cylinderProgram, selected[2], selected[3], selected[4]);
+                gl.uniform1i(cylinderProgram.u_isYawOrExamine, 1);
             }
-            initTranslation(gl, cylinderProgram, selected[2], selected[3], selected[4], toggle2);
             gl.uniform1f(cylinderProgram.u_shininessVal, 1.0);
             initScale(gl, cylinderProgram);
             initRotate(gl, cylinderProgram);
@@ -1385,6 +1464,9 @@ function drawSphere(gl, cylinderProgram) {
     else { // top + pers
         gl.uniform4f(cylinderProgram.u_Translation, -100 + 200 * selected_s[0], -100 + 200 * selected_s[1], 0, 0);
     }
+    if (isDb || isE) {
+        gl.uniform4f(cylinderProgram.u_Translation, 200 * (-0.5 + selected_s[0] - selected[2]), 200 * (-0.5 + selected_s[1] - selected[3]), 0, 0);
+    }
 
     // Calculate the matrix to transform the normal based on the model matrix
     normalMatrix.setInverseOf(modelMatrix);
@@ -1507,7 +1589,7 @@ function animate(angle) {
 }
 
 var currentAngle = 0.0;  // Current rotation angle
-function initMatrix2(gl, cylinderProgram) {
+function initMatrix2(gl, cylinderProgram, tx, ty, tz) {
     gl.useProgram(cylinderProgram);
     var mvpMatrix = new Matrix4();
     var vpMatrix = new Matrix4();
@@ -1516,22 +1598,22 @@ function initMatrix2(gl, cylinderProgram) {
     var angle = currentAngle * Math.PI / 180;
     if (toggle2 == 0) { //Ortho
         vpMatrix.setOrtho(-200, 200, -200, 200, -1000, 1000);
+        gl.uniform4f(cylinderProgram.u_Translation, 200 * (tx - selected[2]), 200 * (ty - selected[3]), tz, 0.0);
     }
     else {
         vpMatrix.setPerspective(90, 1, 10, 1000);
+        gl.uniform4f(cylinderProgram.u_Translation, 200 * (tx - selected[2]), 200 * (ty - selected[3]), 200 * tz, 0.0);
     }
-    var eyefromx = 200 * selected[2];
-    var eyefromy = 200 * selected[3];
-    var eyetox = eyefromx + 200 * Math.cos(angle);
-    var eyetoy = eyefromy + 200 * Math.sin(angle);
-    console.log(`eyefrom: [${eyefromx}, ${eyefromy}]`);
-    console.log(`eyeto: [${eyetox}, ${eyetoy}]`);
-    vpMatrix.lookAt(eyefromx, eyefromy, 50, eyetox, eyetoy, 50, 0, 0, 1);
+    var eyefromx = 0;
+    var eyefromy = 0;
+    var eyetox = 100 * Math.cos(angle);
+    var eyetoy = 100 * Math.sin(angle);
+    vpMatrix.lookAt(eyefromx, eyefromy, 80, eyetox, eyetoy, 80, 0, 0, 1);
     mvpMatrix.set(vpMatrix).multiply(modelMatrix);
     gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
 }
 
-function initMatrix3(gl, cylinderProgram) {
+function initMatrix3(gl, cylinderProgram, tx, ty, tz) {
     gl.useProgram(cylinderProgram);
     var mvpMatrix = new Matrix4();
     var vpMatrix = new Matrix4();
@@ -1540,17 +1622,17 @@ function initMatrix3(gl, cylinderProgram) {
     var angle = currentAngle * Math.PI / 180;
     if (toggle2 == 0) { //Ortho
         vpMatrix.setOrtho(-200, 200, -200, 200, -1000, 1000);
+        gl.uniform4f(cylinderProgram.u_Translation, 200 * (tx - selected[2]), 200 * (ty - selected[3]), tz, 0.0);
     }
     else {
         vpMatrix.setPerspective(90, 1, 10, 1000);
+        gl.uniform4f(cylinderProgram.u_Translation, 200 * (tx - selected[2]), 200 * (ty - selected[3]), 200 * tz, 0.0);
     }
-    var eyefromx = 200 * selected[2] + 50 * Math.cos(angle);
-    var eyefromy = 200 * selected[3] + 50 * Math.sin(angle);
-    var eyetox = 200 * selected[2];
-    var eyetoy = 200 * selected[3];
-    console.log(`eyefrom: [${eyefromx}, ${eyefromy}]`);
-    console.log(`eyeto: [${eyetox}, ${eyetoy}]`);
-    vpMatrix.lookAt(eyefromx, eyefromy, 50, eyetox, eyetoy, 50, 0, 0, 1);
+    var eyefromx = 100 * Math.cos(angle);
+    var eyefromy = 100 * Math.sin(angle);
+    var eyetox = 0;
+    var eyetoy = 0;
+    vpMatrix.lookAt(eyefromx, eyefromy, 80, eyetox, eyetoy, 80, 0, 0, 1);
     // Calculate the model matrix
     mvpMatrix.set(vpMatrix).multiply(modelMatrix);
     gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
