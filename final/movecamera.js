@@ -325,7 +325,7 @@ function main() {
             console.log('modifying background: start');
             isModBG = 1;
         }
-        if (ev.ctrlKey == 1) {
+        else if (ev.ctrlKey == 1) {
             console.log('modifying background: start');
             isModBG = 2;
         }
