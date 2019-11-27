@@ -40,7 +40,27 @@ var VSHADER_SOURCE =
     '           specular = pow(specAngle, u_shininessVal);\n' +
     '       }\n' +
     '       vec3 s = vec3(1.0, 1.0, 1.0) * vec3(1.0, 1.0, 1.0) * specular;\n' +
+    // point lighting
+    '       vec3 lightDirection2 = normalize(u_LightPos - vec3(u_mvpMatrix * a_Position));\n' +
+    '       vec3 normal2 = normalize(a_Normal);\n' +
+    '       v_vertPos4 = u_mvpMatrix * a_Position;\n' +
+    '       v_vertPos = vec3(v_vertPos4) / v_vertPos4.w;\n' + // view direction
+    '       float nDotL2 = max(dot(lightDirection2, normal2), 0.0);\n' +
+    '       vec3 diffuse2 = vec3(0.5, 0.5, 1) * a_Color.rgb * nDotL2;\n' +
+    '       float specular2 = 0.0;\n' +
+    '       if(nDotL2 > 0.0) {\n' +
+    '           vec3 R2 = reflect(-lightDirection2, normal);\n' +
+    '           vec3 V2 = normalize(-v_vertPos);\n' +
+    '           float specAngle2 = max(dot(R2, V2), 0.0);\n' +
+    '           specular2 = pow(specAngle2, u_shininessVal);\n' +
+    '       }\n' +
+    '       vec3 s2 = vec3(0.5, 0.5, 1.0) * vec3(1.0, 1.0, 1.0) * specular2;\n' +
+
     '       v_Color = vec4(diffuse + s, a_Color.a);\n' +
+
+    '       if (!u_LightOff) {\n' + // u_LightOff == 0, meaning that the light is turned on
+    '           v_Color = vec4(diffuse + diffuse2 + s + s2, a_Color.a);\n' +
+    '       }\n' +
     '   }\n' +
     '   else if(u_isTree) {\n' + // draw trees
     '       vec4 v_vertPos4 = u_mvpMatrix * (u_rotateMatrix_x * u_rotateMatrix_z * u_scaleMatrix * a_Position + u_Translation);\n' +
@@ -855,8 +875,6 @@ function draw(gl, cylinderProgram) {
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
     gl.enable(gl.DEPTH_TEST);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    drawBG(gl, cylinderProgram);
-    initMatrix(gl, cylinderProgram, toggle1, toggle2);
     for (var i = 0; i < count; i++) {
         var newmap = map[i];
         if (newmap[1] == 0) {
@@ -1006,7 +1024,10 @@ function draw(gl, cylinderProgram) {
         }
     }
     gl.uniform1i(cylinderProgram.u_Clicked, 0);
+    initLightPos(gl, cylinderProgram);
+    initMatrix(gl, cylinderProgram, toggle1, toggle2);
     drawSphere(gl, cylinderProgram);
+    drawBG(gl, cylinderProgram);
 }
 
 /* save: refer to https://jsfiddle.net/4v26ebtp/
@@ -1153,8 +1174,11 @@ function drawSphere(gl, cylinderProgram) {
     // Calculate the view projection matrix
     gl.uniform4f(cylinderProgram.u_Translation, -100 + 200 * selected_s[0], -100 + 200 * selected_s[1], 0, 0);
 
-    if (isDb || isE) {
-        gl.uniform4f(cylinderProgram.u_Translation, -100 + 200 * (-0.5 + selected_s[0] - selected[2]), -100 + 200 * (-0.5 + selected_s[1] - selected[3]), 0, 0);
+    if (isDb) {
+        initMatrix2(gl, cylinderProgram, -0.5 + selected_s[0], -0.5 + selected_s[1], 0);
+    }
+    if (isE) {
+        initMatrix3(gl, cylinderProgram, -0.5 + selected_s[0], -0.5 + selected_s[1], 0);
     }
 
     // Calculate the matrix to transform the normal based on the model matrix

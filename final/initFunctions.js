@@ -237,7 +237,7 @@ function initMatrix2(gl, cylinderProgram, tx, ty, tz) {
     var angle = currentAngle * Math.PI / 180;
     if (toggle2 == 0) { //Ortho
         vpMatrix.setOrtho(-200, 200, -200, 200, -1000, 1000);
-        gl.uniform4f(cylinderProgram.u_Translation, 200 * (tx - selected[2]), 200 * (ty - selected[3]), tz, 0.0);
+        gl.uniform4f(cylinderProgram.u_Translation, 200 * (tx - selected[2]), 200 * (ty - selected[3]), 200 * tz, 0.0);
     }
     else {
         vpMatrix.setPerspective(90, 1, 10, 1000);
@@ -261,7 +261,7 @@ function initMatrix3(gl, cylinderProgram, tx, ty, tz) {
     var angle = currentAngle * Math.PI / 180;
     if (toggle2 == 0) { //Ortho
         vpMatrix.setOrtho(-200, 200, -200, 200, -1000, 1000);
-        gl.uniform4f(cylinderProgram.u_Translation, 200 * (tx - selected[2]), 200 * (ty - selected[3]), tz, 0.0);
+        gl.uniform4f(cylinderProgram.u_Translation, 200 * (tx - selected[2]), 200 * (ty - selected[3]), 200 * tz, 0.0);
     }
     else {
         vpMatrix.setPerspective(90, 1, 10, 1000);
@@ -443,7 +443,7 @@ function initMatrixBG(gl, cylinderProgram, tag1, tag2) {
         else {
             mvpMatrix.setPerspective(90 + zooming, 1, 10, 1000);
         }
-        mvpMatrix.lookAt(0, 0, 200 + camera1, 0, 0, 0, 0, 1, 0);
+        mvpMatrix.lookAt(200 * panx, 200 * pany, 200 + camera1, 200 * panx, 200 * pany, 0, 0, 1, 0);
     }
     else { // Side
         if (tag2 == 0) { //Ortho
@@ -452,7 +452,7 @@ function initMatrixBG(gl, cylinderProgram, tag1, tag2) {
         else {
             mvpMatrix.setPerspective(90 + zooming, 1, 10, 1000);
         }
-        mvpMatrix.lookAt(0, -200 / camera2, 75 / camera2, 0, 0, 0, 0, 1, 0);
+        mvpMatrix.lookAt(200 * panx, -200 / camera2 + 200 * pany, 75 / camera2, 200 * panx, 200 * pany, 0, 0, 1, 0);
     }
     gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
 }
