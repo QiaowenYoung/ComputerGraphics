@@ -628,6 +628,7 @@ function decideClickOn(ev, gl, cylinderProgram) {
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
     gl.enable(gl.DEPTH_TEST);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.useProgram(cylinderProgram);
     var x = ev.clientX, y = ev.clientY;
     var rect = ev.target.getBoundingClientRect();
     var tag = 0;
@@ -730,6 +731,7 @@ function redraw(ev, gl, canvas, cylinderProgram) {
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
     gl.enable(gl.DEPTH_TEST);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.useProgram(cylinderProgram);
     var x = ev.clientX; // x coordinate of a mouse pointer
     var y = ev.clientY; // y coordinate of a mouse pointer
     var rect = ev.target.getBoundingClientRect();
@@ -875,6 +877,7 @@ function draw(gl, cylinderProgram) {
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
     gl.enable(gl.DEPTH_TEST);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.useProgram(cylinderProgram);
     for (var i = 0; i < count; i++) {
         var newmap = map[i];
         if (newmap[1] == 0) {
@@ -916,10 +919,10 @@ function draw(gl, cylinderProgram) {
             initTranslation(gl, cylinderProgram, newmap[3], newmap[4], newmap[5]);
             initMatrix(gl, cylinderProgram, toggle1, toggle2);
             if (isDb) {
-                initMatrix2(gl, cylinderProgram, newmap[3], newmap[4], newmap[5]);
+                initMatrix2(gl, cylinderProgram);
             }
             if (isE) {
-                initMatrix3(gl, cylinderProgram, newmap[3], newmap[4], newmap[5]);
+                initMatrix3(gl, cylinderProgram);
             }
             initGloss(gl, cylinderProgram, newmap[2]);
             initScale(gl, cylinderProgram);
@@ -983,10 +986,10 @@ function draw(gl, cylinderProgram) {
             initTranslation(gl, cylinderProgram, selected[2], selected[3], selected[4]);
             initMatrix(gl, cylinderProgram, toggle1, toggle2);
             if (isDb) {
-                initMatrix2(gl, cylinderProgram, selected[2], selected[3], selected[4]);
+                initMatrix2(gl, cylinderProgram);
             }
             if (isE) {
-                initMatrix3(gl, cylinderProgram, selected[2], selected[3], selected[4]);
+                initMatrix3(gl, cylinderProgram);
             }
             gl.uniform1f(cylinderProgram.u_shininessVal, 1.0);
             initScale(gl, cylinderProgram);
@@ -1175,10 +1178,10 @@ function drawSphere(gl, cylinderProgram) {
     gl.uniform4f(cylinderProgram.u_Translation, -100 + 200 * selected_s[0], -100 + 200 * selected_s[1], 0, 0);
 
     if (isDb) {
-        initMatrix2(gl, cylinderProgram, -0.5 + selected_s[0], -0.5 + selected_s[1], 0);
+        initMatrix2(gl, cylinderProgram);
     }
     if (isE) {
-        initMatrix3(gl, cylinderProgram, -0.5 + selected_s[0], -0.5 + selected_s[1], 0);
+        initMatrix3(gl, cylinderProgram);
     }
 
     // Calculate the matrix to transform the normal based on the model matrix
@@ -1204,10 +1207,10 @@ function drawBG(gl, cylinderProgram) {
     initLightDirectionBG(gl, cylinderProgram);
     initMatrixBG(gl, cylinderProgram, toggle1, toggle2);
     if (isDb) {
-        initMatrix2(gl, cylinderProgram, 0, 0, 0);
+        initMatrix2(gl, cylinderProgram);
     }
     if (isE) {
-        initMatrix3(gl, cylinderProgram, 0, 0, 0);
+        initMatrix3(gl, cylinderProgram);
     }
     initGlossBG(gl, cylinderProgram);
     gl.drawArrays(gl.TRIANGLES, 0, pos.length / 3);

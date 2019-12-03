@@ -228,7 +228,7 @@ function animate(angle) {
     return newAngle % 360;
 }
 
-function initMatrix2(gl, cylinderProgram, tx, ty, tz) {
+function initMatrix2(gl, cylinderProgram) {
     gl.useProgram(cylinderProgram);
     var mvpMatrix = new Matrix4();
     var vpMatrix = new Matrix4();
@@ -237,22 +237,20 @@ function initMatrix2(gl, cylinderProgram, tx, ty, tz) {
     var angle = currentAngle * Math.PI / 180;
     if (toggle2 == 0) { //Ortho
         vpMatrix.setOrtho(-200, 200, -200, 200, -1000, 1000);
-        gl.uniform4f(cylinderProgram.u_Translation, 200 * (tx - selected[2]), 200 * (ty - selected[3]), 200 * tz, 0.0);
     }
     else {
         vpMatrix.setPerspective(90, 1, 10, 1000);
-        gl.uniform4f(cylinderProgram.u_Translation, 200 * (tx - selected[2]), 200 * (ty - selected[3]), 200 * tz, 0.0);
     }
-    var eyefromx = 0;
-    var eyefromy = 0;
-    var eyetox = 100 * Math.cos(angle);
-    var eyetoy = 100 * Math.sin(angle);
+    var eyefromx = 200 * selected[2];
+    var eyefromy = 200 * selected[3];
+    var eyetox = 200 * selected[2] + 100 * Math.cos(angle);
+    var eyetoy = 200 * selected[3] + 100 * Math.sin(angle);
     vpMatrix.lookAt(eyefromx, eyefromy, 80, eyetox, eyetoy, 80, 0, 0, 1);
     mvpMatrix.set(vpMatrix).multiply(modelMatrix);
     gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
 }
 
-function initMatrix3(gl, cylinderProgram, tx, ty, tz) {
+function initMatrix3(gl, cylinderProgram) {
     gl.useProgram(cylinderProgram);
     var mvpMatrix = new Matrix4();
     var vpMatrix = new Matrix4();
@@ -261,16 +259,14 @@ function initMatrix3(gl, cylinderProgram, tx, ty, tz) {
     var angle = currentAngle * Math.PI / 180;
     if (toggle2 == 0) { //Ortho
         vpMatrix.setOrtho(-200, 200, -200, 200, -1000, 1000);
-        gl.uniform4f(cylinderProgram.u_Translation, 200 * (tx - selected[2]), 200 * (ty - selected[3]), 200 * tz, 0.0);
     }
     else {
         vpMatrix.setPerspective(90, 1, 10, 1000);
-        gl.uniform4f(cylinderProgram.u_Translation, 200 * (tx - selected[2]), 200 * (ty - selected[3]), 200 * tz, 0.0);
     }
-    var eyefromx = 100 * Math.cos(angle);
-    var eyefromy = 100 * Math.sin(angle);
-    var eyetox = 0;
-    var eyetoy = 0;
+    var eyefromx = 200 * selected[2] + 100 * Math.cos(angle);
+    var eyefromy = 200 * selected[3] + 100 * Math.sin(angle);
+    var eyetox = 200 * selected[2];
+    var eyetoy = 200 * selected[3];
     vpMatrix.lookAt(eyefromx, eyefromy, 80, eyetox, eyetoy, 80, 0, 0, 1);
     mvpMatrix.set(vpMatrix).multiply(modelMatrix);
     gl.uniformMatrix4fv(cylinderProgram.u_mvpMatrix, false, mvpMatrix.elements);
